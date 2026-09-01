@@ -15,7 +15,11 @@ export const metadata: Metadata = {
   description: "収穫から出荷までをつなぐ、キウイ農園の管理アプリ",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="ja" className={cn("font-sans", notoSansJP.variable)}>
       <body className="bg-kiwi-cream text-foreground" suppressHydrationWarning>

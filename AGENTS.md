@@ -1,3 +1,16 @@
+# Project architecture
+
+**Read [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) before adding or changing a feature.**
+
+Quick orientation:
+
+- Code lives under `src/`. Path alias `@/*` → `src/*`.
+- Two surfaces, one backend: `(ops)` = phone-first quick-entry (`/`, `/harvest/new`, …), `(admin)` = PC dashboard (`/dashboard`). Route groups, so no URL segment. The split is layout + entry point only — never fork business logic on device.
+- **Vertical feature slices**: `src/features/<name>/` holds `components/`, `schema.ts` (zod = source of truth), `queries.ts` (reads), `actions.ts` (`"use server"` writes), `index.ts` (the only public import surface).
+- **Layered**: routing → presentation → application → domain → data access → infrastructure. Dependencies point down only. `page.tsx` is thin (fetch + compose). Only `queries.ts` / `actions.ts` touch Supabase.
+- Backend is deferred — `queries.ts` returns placeholder data marked `TODO(supabase)`; get the UI working first.
+- Before commit: `npx tsc --noEmit && npx eslint src && npm run build`.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know
