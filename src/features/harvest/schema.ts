@@ -1,0 +1,52 @@
+import { z } from "zod";
+
+/** 枝の向き (tree-row direction). */
+export const BRANCH_OPTIONS = ["北", "南", "東", "西"] as const;
+export type Branch = (typeof BRANCH_OPTIONS)[number];
+
+/**
+ * Domain schema for a single harvest entry (収穫登録).
+ *
+ * Only the fields a person actually types are here. Everything else on the
+ * record is derived server-side and never entered by hand:
+ *   - 作業記録ID / 入力TS            → generated on insert
+ *   - スタッフID・スタッフ名          → from the signed-in user
+ *   - 収穫タイトル                    → `${作業日}収穫${品種名}${番地名}${樹体名}`
+ *   - 収穫年・収穫月                  → from 作業日
+ *
+ * Single source of truth: the client form (RHF resolver) and the server
+ * action both validate against this. Types are derived, never hand-written.
+ */
+export const harvestInputSchema = z.object({
+  workDate: z.string().min(1, "作業日を入力してください"), // 作業日
+  workTime: z.string().optional(), // 作業時間（任意）
+  plotId: z.string().min(1, "番地を選択してください"), // 番地
+  treeBlockId: z.string().min(1, "樹体を選択してください"), // 樹体
+  varietyId: z.string().min(1, "品種を選択してください"), // 品種
+  branch: z.enum(BRANCH_OPTIONS, { message: "枝を選択してください" }), // 枝
+  sortingDeadline: z.string().min(1, "選果期限を入力してください"), // 選果期限
+  weightKg: z.coerce // 収穫量(kg)
+    .number({ message: "収穫量を入力してください" })
+    .positive("0 より大きい値を入力してください")
+    .max(100_000, "収穫量が大きすぎます。入力内容を確認してください"),
+  notes: z.string().max(500, "メモは500文字以内で入力してください").optional(),
+});
+
+export type HarvestInput = z.infer<typeof harvestInputSchema>;
+
+export type Option = {
+  id: string;
+  name: string;
+};
+
+/** 樹体 (tree block) belongs to one 番地 (plot). */
+export type TreeBlock = Option & {
+  plotId: string;
+};
+
+export type HarvestFormOptions = {
+  plots: Option[];
+  treeBlocks: TreeBlock[];
+  varieties: Option[];
+  staff: Option[];
+};
