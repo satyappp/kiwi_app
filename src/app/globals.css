@@ -65,30 +65,30 @@
     --kiwi-brown: #6d4c41;
     --kiwi-ink: #2f5233;
 
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
+    --background: var(--kiwi-cream);
+    --foreground: #2b2b26;
+    --card: #ffffff;
+    --card-foreground: #2b2b26;
+    --popover: #ffffff;
+    --popover-foreground: #2b2b26;
+    --primary: #42a047;
+    --primary-foreground: #ffffff;
+    --secondary: #f2ead6;
+    --secondary-foreground: var(--kiwi-ink);
+    --muted: #f2ead6;
+    --muted-foreground: #7c745c;
+    --accent: #e8f1dc;
+    --accent-foreground: var(--kiwi-ink);
     --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
+    --border: #e7dfc9;
+    --input: #e7dfc9;
+    --ring: #42a047;
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
     --chart-3: oklch(0.439 0 0);
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
-    --radius: 0.625rem;
+    --radius: 0.9rem;
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.145 0 0);
     --sidebar-primary: oklch(0.205 0 0);
@@ -142,5 +142,16 @@
     }
   html {
     @apply font-sans;
+    }
+  /* line the native date/time picker icon up with the NativeSelect chevron:
+     a 16px glyph whose right edge sits at the field's px-3.5 padding line */
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    width: 1rem;
+    height: 1rem;
+    margin: 0;
+    padding: 0;
+    opacity: 0.45;
+    cursor: pointer;
     }
 }
