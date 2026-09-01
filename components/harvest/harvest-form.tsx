@@ -88,14 +88,12 @@ export function HarvestForm({
           id="worker"
           name="workerId"
           className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-          defaultValue={workers[0]?.id ?? ""}
+          defaultValue=""
           required
         >
-          {workers.length === 0 && (
-            <option value="" disabled>
-              担当者を選択
-            </option>
-          )}
+          <option value="" disabled>
+            担当者を選択
+          </option>
           {workers.map((worker) => (
             <option key={worker.id} value={worker.id}>
               {worker.name}
