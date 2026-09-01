@@ -19,6 +19,17 @@ Supabase signup disabled.
 Running `20260901120000_harvest_schema.sql` automatically creates profiles for
 future signups and backfills profiles for Auth users that already exist.
 
+## After `20260901130000_sorting_schema.sql`
+
+Run it only after the harvest migration. Selection records reference
+`harvest_logs`, and inherit variety, plot, harvest title, and sorting deadline
+from the selected harvest row.
+
+The eight current size standards (`5L`, `4L`, `3L`, `LL`, `L`, `M`, `S`,
+`SS`) are seeded automatically. One sorting log records one harvest, one size,
+and one weight. The database sets the signed-in staff, sorting date, input
+timestamp, and ethylene-start deadline (14 days after registration).
+
 ## Tables
 
 | table | maps to | notes |
@@ -28,7 +39,19 @@ future signups and backfills profiles for Auth users that already exist.
 | `plots` | 番地 | seeded from CSV |
 | `tree_blocks` | 樹体 | associated with a plot for dropdown filtering; app can add per plot |
 | `harvest_logs` | 収穫入力 | see `harvest_logs_expanded` view for the flat CSV-shaped read |
+| `size_standards` | サイズ・規格 | seeded with 5L through SS; rows can be added later |
+| `sorting_logs` | 選果作業ログ | one row per harvest, size, and weight entry |
 
-`work_time` defaults to the current Japan time. When the optional UI field is
-blank, the insert mapping must omit the column; it must not send `NULL` or an
-empty string, otherwise the database default cannot apply.
+### Harvest input defaults
+
+`harvest_logs.work_time` defaults to the current Japan time. When the optional
+UI field is blank, the insert mapping must omit the column; it must not send
+`NULL` or an empty string, otherwise the database default cannot apply.
+
+## Sorting read views
+
+| view | purpose |
+|---|---|
+| `sorting_logs_expanded` | flat selection log with inherited harvest information |
+| `harvest_sorting_status` | selected and remaining weight per harvest, with overage warning |
+| `sorting_inventory` | selected inventory grouped by variety, plot, size, and ethylene deadline |
