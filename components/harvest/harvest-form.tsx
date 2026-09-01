@@ -15,12 +15,14 @@ type HarvestFormProps = {
   currentUser: CurrentUser;
   plots: Option[];
   varieties: Option[];
+  workers: Option[];
 };
 
 export function HarvestForm({
   currentUser,
   plots,
   varieties,
+  workers,
 }: HarvestFormProps) {
   return (
     <form className="space-y-5">
@@ -82,15 +84,24 @@ export function HarvestForm({
 
       <div className="space-y-2">
         <Label htmlFor="worker">担当者</Label>
-        <Input
+        <select
           id="worker"
-          name="workerName"
-          value={currentUser?.name ?? ""}
-          readOnly
-        />
-        {currentUser && (
-          <input type="hidden" name="workerId" value={currentUser.id} />
-        )}
+          name="workerId"
+          className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+          defaultValue={workers[0]?.id ?? ""}
+          required
+        >
+          {workers.length === 0 && (
+            <option value="" disabled>
+              担当者を選択
+            </option>
+          )}
+          {workers.map((worker) => (
+            <option key={worker.id} value={worker.id}>
+              {worker.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="space-y-2">

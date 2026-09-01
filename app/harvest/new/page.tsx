@@ -9,6 +9,10 @@ const varieties = [
   { id: "hayward", name: "ヘイワード" },
 ];
 
+const workers = [
+  { id: "worker-ito", name: "伊藤" },
+];
+
 export default async function NewHarvestPage() {
   const supabase = await createClient();
   const {
@@ -39,6 +43,7 @@ export default async function NewHarvestPage() {
           currentUser={currentUser}
           plots={plots}
           varieties={varieties}
+          workers={workers}
         />
       </main>
     </div>
