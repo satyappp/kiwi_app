@@ -1,4 +1,6 @@
 import { KiwiBackdrop } from "@/components/layout/kiwi-backdrop";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 
 /**
  * Operational surface — the phone-first quick-entry app used in the field
@@ -10,11 +12,15 @@ import { KiwiBackdrop } from "@/components/layout/kiwi-backdrop";
  * `KiwiBackdrop` is a sibling of (not inside) the `@container` column — the
  * container context would otherwise trap its `position: fixed`.
  */
-export default function OpsLayout({
+export default async function OpsLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  if (!data?.claims?.sub) redirect("/login");
+
   return (
     <>
       <KiwiBackdrop />

@@ -60,7 +60,7 @@ src/
   proxy.ts                 session refresh (Next 16 "proxy", was "middleware")
 ```
 
-Current features: `home`, `harvest`. Planned (see task list): `sorting`,
+Current features: `auth`, `home`, `harvest`. Planned (see task list): `sorting`,
 `cold-storage`, `ripening`, `inventory`, `shipments`, `orders`, `customers`,
 `tasks`, `dashboard`.
 
@@ -172,9 +172,14 @@ The product brief weighs *fewer, safer keystrokes* above feature count. So:
   (`supabase gen types typescript`). Data access uses these; the domain layer
   uses hand-written types and the mapping layer bridges them.
 - Env: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+- Auth is closed registration: `/signup` validates a server-only farm code,
+  then creates the user through the server-only Admin API. Public Supabase
+  sign-up remains disabled. Required server-only env vars:
+  `SUPABASE_SECRET_KEY`, `KIWI_SIGNUP_CODE` (minimum 16 characters).
 
-Backend is deferred — features currently return placeholder data from
-`queries.ts` so the UI works. Each such spot is marked `TODO(supabase)`.
+The harvest feature is connected to the production Supabase schema. Planned
+features may temporarily use placeholder data while their UI is being built;
+those placeholders must remain explicit and be replaced before release.
 
 ---
 

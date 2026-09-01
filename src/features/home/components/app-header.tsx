@@ -1,4 +1,7 @@
 import Image from "next/image";
+import { LogOut } from "lucide-react";
+
+import { logout } from "@/features/auth";
 
 export function AppHeader() {
   return (
@@ -23,19 +26,15 @@ export function AppHeader() {
         キウイ農園
       </h1>
 
-      <button
-        type="button"
-        aria-label="お知らせを見る"
-        className="relative -mr-1.5 grid size-11 place-items-center rounded-full active:bg-black/5"
-      >
-        <Image
-          src="/assets/icons/png/64/notifications.png"
-          alt=""
-          width={26}
-          height={26}
-          className="size-[26px]"
-        />
-      </button>
+      <form action={logout} className="relative -mr-1.5">
+        <button
+          type="submit"
+          aria-label="ログアウト"
+          className="grid size-11 place-items-center rounded-full text-kiwi-ink active:bg-black/5"
+        >
+          <LogOut aria-hidden="true" className="size-[24px]" />
+        </button>
+      </form>
     </header>
   );
 }

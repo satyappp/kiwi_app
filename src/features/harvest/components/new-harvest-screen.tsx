@@ -22,6 +22,12 @@ function nowInJst() {
   return { date, time };
 }
 
+function addDays(date: string, days: number) {
+  const value = new Date(`${date}T00:00:00Z`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
+}
+
 export async function NewHarvestScreen() {
   const [options, currentStaff] = await Promise.all([
     getHarvestFormOptions(),
@@ -45,6 +51,7 @@ export async function NewHarvestScreen() {
         options={options}
         defaultDate={date}
         defaultTime={time}
+        defaultSortingDeadline={addDays(date, 30)}
       />
     </main>
   );

@@ -3,51 +3,66 @@ import type {
   Option,
   TreeBlock,
 } from "@/features/harvest/schema";
+import { createClient } from "@/lib/supabase/server";
 
 /**
  * Data access for the harvest feature. Only this file (and actions.ts) may
  * talk to Supabase for harvest data; components receive plain domain objects.
  *
- * TODO(supabase): everything here is placeholder data so the UI works. Swap
- * for the master-data tables (番地 / 樹体 / 品種 / スタッフ) + the signed-in
- * user later. IDs below mirror the real export sample.
+ * Reads use the signed-in user's Supabase session, so RLS remains authoritative.
  */
 
-const PLACEHOLDER_PLOTS: Option[] = [
-  { id: "73eabf6a", name: "おおくまキウイ再生クラブ第一圃場_0" },
-  { id: "plot-b", name: "第二圃場" },
-];
-
-const PLACEHOLDER_TREE_BLOCKS: TreeBlock[] = [
-  { id: "tb-204", plotId: "73eabf6a", name: "204" },
-  { id: "tb-206", plotId: "73eabf6a", name: "206" },
-  { id: "tb-208", plotId: "73eabf6a", name: "208" },
-  { id: "tb-b-01", plotId: "plot-b", name: "B-01" },
-];
-
-const PLACEHOLDER_VARIETIES: Option[] = [
-  { id: "be188951", name: "紅妃" },
-  { id: "hayward", name: "ヘイワード" },
-  { id: "sangolden", name: "サンゴールド" },
-];
-
-const PLACEHOLDER_STAFF: Option[] = [
-  { id: "1", name: "原口" },
-  { id: "2", name: "伊藤" },
-  { id: "3", name: "山田 太郎" },
-];
-
 export async function getHarvestFormOptions(): Promise<HarvestFormOptions> {
+  const supabase = await createClient();
+  const [plotsResult, treeBlocksResult, varietiesResult] = await Promise.all([
+    supabase
+      .from("plots")
+      .select("id, name")
+      .eq("is_active", true)
+      .order("sort_order")
+      .order("name"),
+    supabase
+      .from("tree_blocks")
+      .select("id, plot_id, name")
+      .eq("is_active", true)
+      .order("sort_order")
+      .order("name"),
+    supabase
+      .from("varieties")
+      .select("id, name")
+      .eq("is_active", true)
+      .order("sort_order")
+      .order("name"),
+  ]);
+
+  const error = plotsResult.error ?? treeBlocksResult.error ?? varietiesResult.error;
+  if (error) {
+    throw new Error(`収穫マスターデータの取得に失敗しました (${error.code})`);
+  }
+
   return {
-    plots: PLACEHOLDER_PLOTS,
-    treeBlocks: PLACEHOLDER_TREE_BLOCKS,
-    varieties: PLACEHOLDER_VARIETIES,
-    staff: PLACEHOLDER_STAFF,
+    plots: (plotsResult.data ?? []) satisfies Option[],
+    treeBlocks: (treeBlocksResult.data ?? []).map(
+      (row): TreeBlock => ({ id: row.id, name: row.name, plotId: row.plot_id }),
+    ),
+    varieties: (varietiesResult.data ?? []) satisfies Option[],
   };
 }
 
 /** The signed-in staff member, used to pre-fill 担当者. */
 export async function getCurrentStaff(): Promise<Option | null> {
-  // TODO(auth): derive from the Supabase session.
-  return PLACEHOLDER_STAFF[0];
+  const supabase = await createClient();
+  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
+  const userId = claimsData?.claims?.sub;
+
+  if (claimsError || !userId) return null;
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, display_name")
+    .eq("id", userId)
+    .single();
+
+  if (error || !data) return null;
+  return { id: data.id, name: data.display_name };
 }
