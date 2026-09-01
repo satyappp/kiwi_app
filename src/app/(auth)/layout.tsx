@@ -11,7 +11,7 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
   return (
     <>
       <KiwiBackdrop />
-      <div className="relative z-0 mx-auto flex min-h-dvh w-full max-w-[440px] items-center px-[7%] py-10">
+      <div className="relative z-0 mx-auto flex min-h-dvh w-full max-w-[420px] flex-col px-4 py-[max(1rem,env(safe-area-inset-top))] sm:px-6 sm:py-8">
         {children}
       </div>
     </>

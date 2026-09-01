@@ -24,7 +24,7 @@ export function AuthForm({ mode, accountCreated = false }: AuthFormProps) {
   const isLogin = mode === "login";
 
   return (
-    <form action={formAction} className="space-y-4" noValidate>
+    <form action={formAction} className="space-y-3.5 sm:space-y-4" noValidate>
       {accountCreated && (
         <p className="rounded-xl bg-primary/10 px-4 py-3 text-sm font-medium text-kiwi-ink">
           アカウントを作成しました。ログインしてください。
@@ -66,7 +66,7 @@ export function AuthForm({ mode, accountCreated = false }: AuthFormProps) {
         </div>
       )}
 
-      <Button type="submit" disabled={isPending} className="mt-2 h-12 w-full rounded-full text-[15px] font-bold shadow-[0_8px_20px_-6px_rgba(66,160,71,0.5)]">
+      <Button type="submit" disabled={isPending} className="mt-1.5 h-12 w-full rounded-full text-[15px] font-bold shadow-[0_8px_20px_-6px_rgba(66,160,71,0.5)] sm:mt-2">
         {isPending ? "処理中…" : isLogin ? "ログイン" : "アカウントを作成"}
       </Button>
 

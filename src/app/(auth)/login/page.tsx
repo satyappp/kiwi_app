@@ -3,10 +3,10 @@ import { AuthForm } from "@/features/auth";
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ created?: string }> }) {
   const { created } = await searchParams;
   return (
-    <main className="w-full rounded-[2rem] border border-white/70 bg-kiwi-cream/80 p-6 shadow-xl shadow-kiwi-brown/10 backdrop-blur-sm">
-      <header className="mb-7 text-center">
-        <p className="mb-2 text-4xl" aria-hidden="true">🥝</p>
-        <h1 className="text-2xl font-bold text-kiwi-ink">キウイ農園</h1>
+    <main className="my-auto w-full rounded-3xl border border-white/70 bg-kiwi-cream/80 p-4 shadow-xl shadow-kiwi-brown/10 backdrop-blur-sm sm:p-6">
+      <header className="mb-5 text-center sm:mb-7">
+        <p className="mb-1.5 text-3xl sm:text-4xl" aria-hidden="true">🥝</p>
+        <h1 className="text-xl font-bold text-kiwi-ink sm:text-2xl">キウイ農園</h1>
         <p className="mt-2 text-sm text-muted-foreground">アカウントにログイン</p>
       </header>
       <AuthForm mode="login" accountCreated={created === "1"} />
