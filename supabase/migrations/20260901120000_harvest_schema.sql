@@ -202,7 +202,8 @@ create table if not exists public.harvest_logs (
   branch text,
 
   sorting_deadline date not null,                -- defaults to work_date + 30
-  weight_kg numeric(12,2) not null,              -- intentionally no range rule
+  weight_kg numeric(12,2) not null
+    check (weight_kg >= 0),                       -- zero allowed; negatives rejected
   title text not null,                            -- composed automatically
   notes text check (notes is null or char_length(notes) <= 500),
 

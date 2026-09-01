@@ -28,3 +28,7 @@ future signups and backfills profiles for Auth users that already exist.
 | `plots` | 番地 | seeded from CSV |
 | `tree_blocks` | 樹体 | associated with a plot for dropdown filtering; app can add per plot |
 | `harvest_logs` | 収穫入力 | see `harvest_logs_expanded` view for the flat CSV-shaped read |
+
+`work_time` defaults to the current Japan time. When the optional UI field is
+blank, the insert mapping must omit the column; it must not send `NULL` or an
+empty string, otherwise the database default cannot apply.

@@ -27,7 +27,7 @@ export const harvestInputSchema = z.object({
   sortingDeadline: z.string().min(1, "選果期限を入力してください"), // 選果期限
   weightKg: z.coerce // 収穫量(kg)
     .number({ message: "収穫量を入力してください" })
-    .positive("0 より大きい値を入力してください")
+    .nonnegative("0 以上の値を入力してください")
     .max(100_000, "収穫量が大きすぎます。入力内容を確認してください"),
   notes: z.string().max(500, "メモは500文字以内で入力してください").optional(),
 });
