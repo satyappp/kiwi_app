@@ -8,7 +8,9 @@ Quick orientation:
 - Two surfaces, one backend: `(ops)` = phone-first quick-entry (`/`, `/harvest/new`, …), `(admin)` = PC dashboard (`/dashboard`). Route groups, so no URL segment. The split is layout + entry point only — never fork business logic on device.
 - **Vertical feature slices**: `src/features/<name>/` holds `components/`, `schema.ts` (zod = source of truth), `queries.ts` (reads), `actions.ts` (`"use server"` writes), `index.ts` (the only public import surface).
 - **Layered**: routing → presentation → application → domain → data access → infrastructure. Dependencies point down only. `page.tsx` is thin (fetch + compose). Only `queries.ts` / `actions.ts` touch Supabase.
-- Backend is deferred — `queries.ts` returns placeholder data marked `TODO(supabase)`; get the UI working first.
+- The harvest feature uses the live Supabase schema. New features may begin with
+  explicit placeholders, but replace them in `queries.ts` / `actions.ts` before
+  calling the feature production-ready.
 - Before commit: `npx tsc --noEmit && npx eslint src && npm run build`.
 
 <!-- BEGIN:nextjs-agent-rules -->

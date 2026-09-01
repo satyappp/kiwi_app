@@ -4,6 +4,11 @@ import { z } from "zod";
 export const BRANCH_OPTIONS = ["北", "南", "東", "西"] as const;
 export type Branch = (typeof BRANCH_OPTIONS)[number];
 
+const optionalString = z.preprocess(
+  (value) => (value === "" ? undefined : value),
+  z.string().optional(),
+);
+
 /**
  * Domain schema for a single harvest entry (収穫登録).
  *
@@ -19,17 +24,25 @@ export type Branch = (typeof BRANCH_OPTIONS)[number];
  */
 export const harvestInputSchema = z.object({
   workDate: z.string().min(1, "作業日を入力してください"), // 作業日
-  workTime: z.string().optional(), // 作業時間（任意）
+  workTime: optionalString, // 作業時間（任意、空欄ならDB既定値）
   plotId: z.string().min(1, "番地を選択してください"), // 番地
-  treeBlockId: z.string().min(1, "樹体を選択してください"), // 樹体
+  treeBlockId: optionalString, // 樹体（任意）
   varietyId: z.string().min(1, "品種を選択してください"), // 品種
-  branch: z.enum(BRANCH_OPTIONS, { message: "枝を選択してください" }), // 枝
+  branch: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.enum(BRANCH_OPTIONS).optional(),
+  ), // 枝（任意）
   sortingDeadline: z.string().min(1, "選果期限を入力してください"), // 選果期限
-  weightKg: z.coerce // 収穫量(kg)
-    .number({ message: "収穫量を入力してください" })
-    .nonnegative("0 以上の値を入力してください")
-    .max(100_000, "収穫量が大きすぎます。入力内容を確認してください"),
-  notes: z.string().max(500, "メモは500文字以内で入力してください").optional(),
+  weightKg: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.coerce // 収穫量(kg)
+      .number({ message: "収穫量を入力してください" })
+      .nonnegative("0 以上の値を入力してください"),
+  ),
+  notes: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.string().max(500, "メモは500文字以内で入力してください").optional(),
+  ),
 });
 
 export type HarvestInput = z.infer<typeof harvestInputSchema>;
@@ -48,5 +61,4 @@ export type HarvestFormOptions = {
   plots: Option[];
   treeBlocks: TreeBlock[];
   varieties: Option[];
-  staff: Option[];
 };

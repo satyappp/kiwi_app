@@ -177,8 +177,9 @@ The product brief weighs *fewer, safer keystrokes* above feature count. So:
   sign-up remains disabled. Required server-only env vars:
   `SUPABASE_SECRET_KEY`, `KIWI_SIGNUP_CODE` (minimum 16 characters).
 
-Backend is deferred — features currently return placeholder data from
-`queries.ts` so the UI works. Each such spot is marked `TODO(supabase)`.
+The harvest feature is connected to the production Supabase schema. Planned
+features may temporarily use placeholder data while their UI is being built;
+those placeholders must remain explicit and be replaced before release.
 
 ---
 
