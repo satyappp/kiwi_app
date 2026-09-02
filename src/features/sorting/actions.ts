@@ -18,8 +18,8 @@ export type CreateSortingResult =
  *
  * Authentication and current master data are checked again on the server;
  * client dropdown values are never trusted. Identity and derived fields are
- * intentionally omitted because the database sets staff_id, sorting_date,
- * timestamps, and ethylene_start_deadline.
+ * intentionally omitted because the database sets staff_id, timestamps, and
+ * ethylene_start_deadline. The worker-selected sorting_date is stored as-is.
  *
  * An overage is allowed so field work is not blocked, but the result includes
  * a warning when the new weight exceeds the remaining unsorted harvest.
@@ -90,12 +90,13 @@ export async function createSorting(
   }
 
   const overageKg = getSortingOverageKg(input.weightKg, remainingWeightKg);
-  // The trigger on sorting_logs fills all staff, date, and deadline columns.
+  // The trigger fills staff and derives the ethylene deadline from sorting_date.
   const { data, error } = await supabase
     .from("sorting_logs")
     .insert({
       harvest_log_id: input.harvestLogId,
       size_standard_id: input.sizeStandardId,
+      sorting_date: input.sortingDate,
       weight_kg: input.weightKg,
     })
     .select("id")

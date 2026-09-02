@@ -1,8 +1,16 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -12,6 +20,7 @@ import {
 } from "@/features/sorting/actions";
 import {
   getSortingOverageKg,
+  sortingInputSchema,
   type SortingFormOptions,
   type StaffOption,
 } from "@/features/sorting/schema";
@@ -19,13 +28,14 @@ import {
 type SortingFormProps = {
   currentStaff: StaffOption | null;
   options: SortingFormOptions;
-  currentDate: string;
+  defaultSortingDate: string;
 };
 
 const inputClass =
   "h-12 w-full rounded-xl border border-input bg-card px-3.5 text-[15px] shadow-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40";
 const labelClass = "text-[13px] font-bold text-kiwi-ink";
 const initialState: CreateSortingResult | null = null;
+const defaultWeightKg = "1.00";
 
 /** Shared label/error shell kept visually aligned with the harvest form. */
 function Field({
@@ -58,6 +68,16 @@ function formatWeight(weightKg: number) {
   return weightKg.toLocaleString("ja-JP", { maximumFractionDigits: 2 });
 }
 
+/** One label/value pair in the pre-submit confirmation dialog. */
+function ConfirmationRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="grid grid-cols-[5.5rem_1fr] gap-3 border-b border-border/70 py-2.5 last:border-0">
+      <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
+      <dd className="text-sm font-medium break-words text-kiwi-ink">{value}</dd>
+    </div>
+  );
+}
+
 /**
  * Client form for fast, repeated size-by-size sorting entry.
  *
@@ -68,12 +88,16 @@ function formatWeight(weightKg: number) {
 export function SortingForm({
   currentStaff,
   options,
-  currentDate,
+  defaultSortingDate,
 }: SortingFormProps) {
   const { harvests, sizeStandards } = options;
+  const formRef = useRef<HTMLFormElement>(null);
+  const isSubmissionConfirmed = useRef(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [sortingDate, setSortingDate] = useState(defaultSortingDate);
   const [harvestLogId, setHarvestLogId] = useState("");
   const [sizeStandardId, setSizeStandardId] = useState("");
-  const [weightKg, setWeightKg] = useState("");
+  const [weightKg, setWeightKg] = useState(defaultWeightKg);
 
   async function submitSorting(
     previousState: CreateSortingResult | null,
@@ -83,7 +107,7 @@ export function SortingForm({
     if (result.ok) {
       // Keep the source harvest selected for the next size entry.
       setSizeStandardId("");
-      setWeightKg("");
+      setWeightKg(defaultWeightKg);
     }
     return result;
   }
@@ -95,6 +119,9 @@ export function SortingForm({
 
   const selectedHarvest = harvests.find(
     (harvest) => harvest.id === harvestLogId,
+  );
+  const selectedSizeStandard = sizeStandards.find(
+    (size) => size.id === sizeStandardId,
   );
 
   // Give immediate feedback; the server repeats this check against fresh data.
@@ -108,8 +135,37 @@ export function SortingForm({
       ? state.fieldErrors
       : undefined;
 
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    if (isSubmissionConfirmed.current) {
+      isSubmissionConfirmed.current = false;
+      return;
+    }
+
+    // Invalid entries go directly to the action so the existing field errors
+    // are returned. Valid entries pause here for the worker's final review.
+    const parsed = sortingInputSchema.safeParse(
+      Object.fromEntries(new FormData(event.currentTarget)),
+    );
+    if (!parsed.success) return;
+
+    event.preventDefault();
+    setIsConfirmOpen(true);
+  }
+
+  function confirmSubmission() {
+    isSubmissionConfirmed.current = true;
+    setIsConfirmOpen(false);
+    formRef.current?.requestSubmit();
+  }
+
   return (
-    <form action={formAction} className="space-y-4" noValidate>
+    <form
+      ref={formRef}
+      action={formAction}
+      onSubmit={handleSubmit}
+      className="space-y-4"
+      noValidate
+    >
       {!currentStaff && (
         <p
           role="alert"
@@ -156,13 +212,21 @@ export function SortingForm({
         </div>
       </Field>
 
-      <Field label="選果日" htmlFor="sorting-date-display">
-        <div
-          id="sorting-date-display"
-          className="flex h-12 items-center rounded-xl border border-input bg-muted/60 px-3.5 text-[15px] text-kiwi-ink shadow-sm"
-        >
-          {formatDate(currentDate)}
-        </div>
+      <Field
+        label="選果日"
+        htmlFor="sorting-date"
+        error={fieldErrors?.sortingDate?.[0]}
+      >
+        <Input
+          id="sorting-date"
+          name="sortingDate"
+          type="date"
+          value={sortingDate}
+          onChange={(event) => setSortingDate(event.target.value)}
+          required
+          aria-invalid={Boolean(fieldErrors?.sortingDate)}
+          className={inputClass}
+        />
       </Field>
 
       <Field
@@ -280,8 +344,8 @@ export function SortingForm({
           id="weight"
           name="weightKg"
           type="number"
-          min="0.01"
-          step="0.01"
+          min="1"
+          step="0.1"
           inputMode="decimal"
           value={weightKg}
           onChange={(event) => setWeightKg(event.target.value)}
@@ -312,6 +376,74 @@ export function SortingForm({
       >
         {isPending ? "登録中…" : "登録する"}
       </Button>
+
+      <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+        <DialogContent
+          showCloseButton={false}
+          className="gap-4 rounded-2xl p-5"
+        >
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-kiwi-ink">
+              これで登録しますか？
+            </DialogTitle>
+            <DialogDescription>
+              入力内容をご確認ください。
+            </DialogDescription>
+          </DialogHeader>
+
+          <dl className="rounded-xl border border-border bg-muted/30 px-3">
+            <ConfirmationRow
+              label="担当者"
+              value={currentStaff?.name ?? "確認できません"}
+            />
+            <ConfirmationRow
+              label="選果日"
+              value={sortingDate ? formatDate(sortingDate) : "未入力"}
+            />
+            <ConfirmationRow
+              label="元の収穫"
+              value={
+                selectedHarvest
+                  ? `${formatDate(selectedHarvest.workDate)}・${selectedHarvest.varietyName}・${selectedHarvest.plotName}${selectedHarvest.treeBlockName ? `・${selectedHarvest.treeBlockName}` : ""}`
+                  : "未選択"
+              }
+            />
+            <ConfirmationRow
+              label="サイズ"
+              value={selectedSizeStandard?.name ?? "未選択"}
+            />
+            <ConfirmationRow
+              label="選果量"
+              value={
+                Number.isFinite(enteredWeightKg)
+                  ? `${formatWeight(enteredWeightKg)} kg`
+                  : "未入力"
+              }
+            />
+          </dl>
+
+          <div className="grid grid-cols-2 gap-3">
+            <DialogClose
+              render={
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 rounded-xl font-bold"
+                />
+              }
+            >
+              戻る
+            </DialogClose>
+            <Button
+              type="button"
+              onClick={confirmSubmission}
+              className="h-11 rounded-xl font-bold"
+            >
+              登録
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </form>
   );
 }

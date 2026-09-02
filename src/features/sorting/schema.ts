@@ -3,24 +3,26 @@ import { z } from "zod";
 /**
  * Domain schema for one sorting entry (選果入力).
  *
- * Only the three values selected or typed by a worker are accepted here:
+ * Only the four values selected or typed by a worker are accepted here:
+ *   - 選果日（当日を初期値として変更可能）
  *   - 元の収穫
  *   - サイズ・規格
  *   - 選果量
  *
- * The database derives the signed-in staff member, sorting date, input
- * timestamp, and ethylene-start deadline. Variety, plot, harvest title, and
+ * The database derives the signed-in staff member, input timestamp, and
+ * ethylene-start deadline. Variety, plot, harvest title, and
  * sorting deadline are inherited through harvest_log_id rather than re-entered.
  * This schema is the single source of truth for both the form and server action.
  */
 export const sortingInputSchema = z.object({
+  sortingDate: z.string().min(1, "選果日を入力してください"), // 選果日
   harvestLogId: z.string().min(1, "元の収穫を選択してください"), // 収穫ログID
   sizeStandardId: z.string().min(1, "サイズを選択してください"), // サイズ規格ID
   weightKg: z.preprocess(
     (value) => (value === "" ? undefined : value),
     z.coerce // 選果量（kg）
       .number({ message: "選果量を入力してください" })
-      .positive("0より大きい値を入力してください"),
+      .min(1, "1 kg以上の値を入力してください"),
   ),
 });
 

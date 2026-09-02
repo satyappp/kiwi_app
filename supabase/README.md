@@ -27,8 +27,9 @@ from the selected harvest row.
 
 The eight current size standards (`5L`, `4L`, `3L`, `LL`, `L`, `M`, `S`,
 `SS`) are seeded automatically. One sorting log records one harvest, one size,
-and one weight. The database sets the signed-in staff, sorting date, input
-timestamp, and ethylene-start deadline (14 days after registration).
+and one weight. The form defaults the sorting date to today but allows another
+date to be selected. The database sets the signed-in staff, input timestamp,
+and ethylene-start deadline (14 days after the selected sorting date).
 
 ## Tables
 

@@ -7,7 +7,7 @@ import {
 
 const JST = "Asia/Tokyo";
 
-/** Date shown to the worker; the database independently sets the same JST date. */
+/** Default sorting date shown to the worker; it remains editable in the form. */
 function todayInJst() {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: JST,
@@ -42,7 +42,7 @@ export async function NewSortingScreen() {
       <SortingForm
         currentStaff={currentStaff}
         options={options}
-        currentDate={todayInJst()}
+        defaultSortingDate={todayInJst()}
       />
     </main>
   );
