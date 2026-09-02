@@ -31,6 +31,23 @@ and one weight. The form defaults the sorting date to today but allows another
 date to be selected. The database sets the signed-in staff, input timestamp,
 and ethylene-start deadline (14 days after the selected sorting date).
 
+## After `20260902130000_ripening_schema.sql`
+
+Run it after both sorting migrations. Ripening batch items reference individual
+`sorting_logs` rows so the database can prevent the same sorted weight from
+being allocated twice.
+
+The migration imports the 77 month/variety rows from the provided ripening
+master sheet. Only the values that exist in the sheet are seeded: October
+`紅妃` uses 48 hours of ethylene treatment and 15°C for 120 hours of resting.
+All undecided settings remain `NULL` and must be configured before they can be
+used as automatic defaults. Add the farm's actual ripening locations to
+`ripening_locations` before registering a batch.
+
+For each batch, the database snapshots the selected rule, calculates the
+ethylene end, resting start, and shippable timestamps, and exposes the current
+phase and next check through `ripening_batches_expanded`.
+
 ## Tables
 
 | table | maps to | notes |
@@ -42,6 +59,10 @@ and ethylene-start deadline (14 days after the selected sorting date).
 | `harvest_logs` | 収穫入力 | see `harvest_logs_expanded` view for the flat CSV-shaped read |
 | `size_standards` | サイズ・規格 | seeded with 5L through SS; rows can be added later |
 | `sorting_logs` | 選果作業ログ | one row per harvest, size, and weight entry |
+| `ripening_locations` | 追熟場所 | active/inactive location master; no guessed locations are seeded |
+| `ripening_rules` | 追熟条件マスタ | month/variety rules imported from the reference sheet |
+| `ripening_batches` | 追熟ロット | one row per ripening run, including schedule and confirmations |
+| `ripening_batch_items` | 追熟内訳 | sorting-log allocations and weights for each ripening batch |
 
 ### Harvest input defaults
 
@@ -56,3 +77,11 @@ UI field is blank, the insert mapping must omit the column; it must not send
 | `sorting_logs_expanded` | flat selection log with inherited harvest information |
 | `harvest_sorting_status` | selected and remaining weight per harvest, with overage warning |
 | `sorting_inventory` | selected inventory grouped by variety, plot, size, and ethylene deadline |
+
+## Ripening read views
+
+| view | purpose |
+|---|---|
+| `ripening_rules_expanded` | month/variety rules with variety names and configured-state flag |
+| `sorting_ripening_status` | sorted, allocated, and still-available weight per sorting log |
+| `ripening_batches_expanded` | batch summary, breakdown, current phase, next check, and warning state |
