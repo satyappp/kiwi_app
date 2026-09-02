@@ -1,11 +1,24 @@
 import { z } from "zod";
 
+/**
+ * Domain schema for one sorting entry (選果入力).
+ *
+ * Only the three values selected or typed by a worker are accepted here:
+ *   - 元の収穫
+ *   - サイズ・規格
+ *   - 選果量
+ *
+ * The database derives the signed-in staff member, sorting date, input
+ * timestamp, and ethylene-start deadline. Variety, plot, harvest title, and
+ * sorting deadline are inherited through harvest_log_id rather than re-entered.
+ * This schema is the single source of truth for both the form and server action.
+ */
 export const sortingInputSchema = z.object({
-  harvestLogId: z.string().min(1, "元の収穫を選択してください"),
-  sizeStandardId: z.string().min(1, "サイズを選択してください"),
+  harvestLogId: z.string().min(1, "元の収穫を選択してください"), // 収穫ログID
+  sizeStandardId: z.string().min(1, "サイズを選択してください"), // サイズ規格ID
   weightKg: z.preprocess(
     (value) => (value === "" ? undefined : value),
-    z.coerce
+    z.coerce // 選果量（kg）
       .number({ message: "選果量を入力してください" })
       .positive("0より大きい値を入力してください"),
   ),
@@ -13,17 +26,24 @@ export const sortingInputSchema = z.object({
 
 export type SortingInput = z.infer<typeof sortingInputSchema>;
 
+/** Signed-in staff displayed as a read-only form value. */
 export type StaffOption = {
   id: string;
   name: string;
 };
 
+/** Active size/grade master row used by the size dropdown. */
 export type SizeStandardOption = {
   id: string;
   code: string;
   name: string;
 };
 
+/**
+ * A harvest selectable as the source of a sorting entry.
+ * Display fields come from harvest_logs_expanded; weights come from
+ * harvest_sorting_status so the worker can see the latest remaining amount.
+ */
 export type HarvestSortingOption = {
   id: string;
   title: string;
@@ -42,7 +62,7 @@ export type SortingFormOptions = {
   sizeStandards: SizeStandardOption[];
 };
 
-/** Returns the amount that this entry would exceed the unselected harvest by. */
+/** Returns how many kg this entry would exceed the remaining harvest by. */
 export function getSortingOverageKg(weightKg: number, remainingWeightKg: number) {
   return Math.max(0, Math.round((weightKg - remainingWeightKg) * 100) / 100);
 }

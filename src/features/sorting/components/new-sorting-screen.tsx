@@ -7,6 +7,7 @@ import {
 
 const JST = "Asia/Tokyo";
 
+/** Date shown to the worker; the database independently sets the same JST date. */
 function todayInJst() {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: JST,
@@ -16,6 +17,11 @@ function todayInJst() {
   }).format(new Date());
 }
 
+/**
+ * Server component for /sorting/new.
+ * Fetches form options and staff in parallel, then composes the operational
+ * header and client form without putting data access in the route file.
+ */
 export async function NewSortingScreen() {
   const [options, currentStaff] = await Promise.all([
     getSortingFormOptions(),

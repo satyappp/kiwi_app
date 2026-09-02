@@ -13,6 +13,17 @@ export type CreateSortingResult =
   | { ok: false; fieldErrors: Record<string, string[]> }
   | { ok: false; formError: string };
 
+/**
+ * Application use case: record one size/weight result for a harvest.
+ *
+ * Authentication and current master data are checked again on the server;
+ * client dropdown values are never trusted. Identity and derived fields are
+ * intentionally omitted because the database sets staff_id, sorting_date,
+ * timestamps, and ethylene_start_deadline.
+ *
+ * An overage is allowed so field work is not blocked, but the result includes
+ * a warning when the new weight exceeds the remaining unsorted harvest.
+ */
 export async function createSorting(
   _prev: CreateSortingResult | null,
   formData: FormData,
@@ -39,6 +50,7 @@ export async function createSorting(
   }
 
   const input = parsed.data;
+  // Validate both references against rows visible to the signed-in user.
   const [harvestStatusResult, sizeStandardResult] = await Promise.all([
     supabase
       .from("harvest_sorting_status")
@@ -76,7 +88,9 @@ export async function createSorting(
       formError: "選択した収穫の残量を確認できませんでした。",
     };
   }
+
   const overageKg = getSortingOverageKg(input.weightKg, remainingWeightKg);
+  // The trigger on sorting_logs fills all staff, date, and deadline columns.
   const { data, error } = await supabase
     .from("sorting_logs")
     .insert({
@@ -98,6 +112,7 @@ export async function createSorting(
     };
   }
 
+  // Refresh every surface that may show sorting totals or current tasks.
   revalidatePath("/");
   revalidatePath("/sorting/new");
   revalidatePath("/dashboard");

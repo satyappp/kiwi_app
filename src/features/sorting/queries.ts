@@ -6,11 +6,22 @@ import type {
 } from "@/features/sorting/schema";
 import { createClient } from "@/lib/supabase/server";
 
+/**
+ * Data access for the sorting feature. Only this file (and actions.ts) may
+ * query Supabase; presentation components receive camelCase domain objects.
+ * Reads use the signed-in session, so database RLS remains authoritative.
+ */
+
+/** PostgreSQL numeric values may arrive as strings; normalize them for the UI. */
 function toNumber(value: number | string | null) {
   const number = Number(value ?? 0);
   return Number.isFinite(number) ? number : 0;
 }
 
+/**
+ * Fetches all data needed to render the form in parallel:
+ * selectable harvests, their current sorting totals, and active size standards.
+ */
 export async function getSortingFormOptions(): Promise<SortingFormOptions> {
   const supabase = await createClient();
   const [harvestsResult, statusResult, sizeStandardsResult] = await Promise.all([
@@ -40,6 +51,7 @@ export async function getSortingFormOptions(): Promise<SortingFormOptions> {
     throw new Error(`選果フォームデータの取得に失敗しました (${error.code})`);
   }
 
+  // Index the aggregate view once instead of repeatedly scanning it per harvest.
   const statusByHarvestId = new Map(
     (statusResult.data ?? []).map((row) => [row.harvest_log_id, row]),
   );
@@ -73,6 +85,7 @@ export async function getSortingFormOptions(): Promise<SortingFormOptions> {
   return { harvests, sizeStandards };
 }
 
+/** The signed-in staff member, displayed as the read-only 担当者 field. */
 export async function getCurrentSortingStaff(): Promise<StaffOption | null> {
   const supabase = await createClient();
   const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();

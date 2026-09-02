@@ -14,6 +14,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
+/**
+ * Sorting-specific back control.
+ * Always confirms that unsaved input will be discarded; choosing "はい"
+ * replaces the current history entry with home so the abandoned form is not
+ * reopened by the browser's back action.
+ */
 export function SortingBackButton() {
   const router = useRouter();
 

@@ -27,6 +27,7 @@ const inputClass =
 const labelClass = "text-[13px] font-bold text-kiwi-ink";
 const initialState: CreateSortingResult | null = null;
 
+/** Shared label/error shell kept visually aligned with the harvest form. */
 function Field({
   label,
   htmlFor,
@@ -57,6 +58,13 @@ function formatWeight(weightKg: number) {
   return weightKg.toLocaleString("ja-JP", { maximumFractionDigits: 2 });
 }
 
+/**
+ * Client form for fast, repeated size-by-size sorting entry.
+ *
+ * Server-provided harvest/master data stays in props. Only interactive form
+ * selections live in local state, while submission and authoritative
+ * validation run through createSorting via useActionState.
+ */
 export function SortingForm({
   currentStaff,
   options,
@@ -73,6 +81,7 @@ export function SortingForm({
   ) {
     const result = await createSorting(previousState, formData);
     if (result.ok) {
+      // Keep the source harvest selected for the next size entry.
       setSizeStandardId("");
       setWeightKg("");
     }
@@ -87,6 +96,8 @@ export function SortingForm({
   const selectedHarvest = harvests.find(
     (harvest) => harvest.id === harvestLogId,
   );
+
+  // Give immediate feedback; the server repeats this check against fresh data.
   const enteredWeightKg = Number(weightKg);
   const overageKg =
     selectedHarvest && weightKg && Number.isFinite(enteredWeightKg)
@@ -182,6 +193,7 @@ export function SortingForm({
         </NativeSelect>
       </Field>
 
+      {/* Inherited harvest fields are shown for confirmation, never re-entered. */}
       {selectedHarvest && (
         <section className="rounded-2xl border border-kiwi-pale bg-white/85 p-4 shadow-sm">
           <h2 className="mb-3 text-sm font-bold text-kiwi-ink">収穫情報</h2>
