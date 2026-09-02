@@ -9,7 +9,7 @@ type MenuItem = {
 
 const items: MenuItem[] = [
   { label: "収穫登録", icon: "harvest", href: "/harvest/new" },
-  { label: "選果入力", icon: "sorting" },
+  { label: "選果入力", icon: "sorting", href: "/sorting/new" },
   { label: "冷蔵保管", icon: "cold" },
   { label: "追熟開始", icon: "ripening" },
   { label: "出荷処理", icon: "shipping" },
