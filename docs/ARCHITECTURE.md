@@ -60,8 +60,8 @@ src/
   proxy.ts                 session refresh (Next 16 "proxy", was "middleware")
 ```
 
-Current features: `auth`, `home`, `harvest`, `sorting`. Planned (see task list):
-`cold-storage`, `ripening`, `inventory`, `shipments`, `orders`, `customers`,
+Current features: `auth`, `home`, `harvest`, `sorting`, `ripening`. Planned (see task list):
+`cold-storage`, `inventory`, `shipments`, `orders`, `customers`,
 `tasks`, `dashboard`.
 
 ---
