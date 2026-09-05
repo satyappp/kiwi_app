@@ -154,6 +154,7 @@ export function RipeningForm({
   const [restingTemperatureC, setRestingTemperatureC] = useState("");
   const [restingDurationHours, setRestingDurationHours] = useState("");
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [notes, setNotes] = useState("");
 
   async function submitRipening(
     previousState: StartRipeningResult | null,
@@ -175,6 +176,7 @@ export function RipeningForm({
       setRestingDurationHours("");
       setNotificationsEnabled(true);
       setNewLocationName("");
+      setNotes("");
     }
     return result;
   }
@@ -298,7 +300,6 @@ export function RipeningForm({
       return;
     }
 
-    const formData = new FormData(event.currentTarget);
     const parsed = ripeningInputSchema.safeParse({
       startDate,
       startTime,
@@ -310,7 +311,7 @@ export function RipeningForm({
       restingTemperatureC,
       restingDurationHours,
       notificationsEnabled,
-      notes: formData.get("notes"),
+      notes,
       items: allocations.map((allocation) => ({
         sortingLogId: allocation.sortingLogId,
         weightKg: allocation.weightKg,
@@ -626,6 +627,8 @@ export function RipeningForm({
         <textarea
           id="ripening-notes"
           name="notes"
+          value={notes}
+          onChange={(event) => setNotes(event.target.value)}
           maxLength={500}
           placeholder="申し送りなどを入力"
           className={textareaClass}
@@ -668,6 +671,8 @@ export function RipeningForm({
             <ConfirmationRow label="寝かせ" value={`${restingTemperatureC ? `${restingTemperatureC}℃・` : ""}${restingDurationHours || "未入力"}時間`} />
             <ConfirmationRow label="終了予定" value={timeline ? formatDateTime(timeline.ethyleneEnd) : "算出できません"} />
             <ConfirmationRow label="出荷可能" value={timeline ? formatDateTime(timeline.shippable) : "算出できません"} />
+            <ConfirmationRow label="通知" value={notificationsEnabled ? "通知対象にする" : "通知対象にしない"} />
+            <ConfirmationRow label="メモ" value={notes.trim() || "なし"} />
           </dl>
 
           <div className="grid grid-cols-2 gap-3">
