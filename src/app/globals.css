@@ -56,6 +56,8 @@
 }
 
 :root {
+    color-scheme: only light;
+
     --kiwi-primary: #4caf50;
     --kiwi-green-mid: #8bc34a;
     --kiwi-green-pale: #c8e6a0;

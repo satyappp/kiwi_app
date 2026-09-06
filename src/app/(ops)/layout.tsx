@@ -1,6 +1,6 @@
 import { KiwiBackdrop } from "@/components/layout/kiwi-backdrop";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentStaff } from "@/features/auth/server";
 
 /**
  * Operational surface — the phone-first quick-entry app used in the field
@@ -17,9 +17,8 @@ export default async function OpsLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  if (!data?.claims?.sub) redirect("/login?next=/home");
+  const staff = await getCurrentStaff();
+  if (!staff) redirect("/login?next=/home");
 
   return (
     <>

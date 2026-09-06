@@ -4,7 +4,6 @@ export { HarvestDashboard } from "@/features/harvest/components/harvest-dashboar
 export { HarvestDataAnalytics } from "@/features/harvest/components/harvest-data-analytics";
 export { HarvestTable } from "@/features/harvest/components/harvest-table";
 export {
-  getCurrentStaff,
   getHarvestDashboardData,
   listHarvestLogs,
 } from "@/features/harvest/queries";

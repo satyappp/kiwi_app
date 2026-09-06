@@ -45,7 +45,10 @@ export const dashboardNavigation: NavigationSection[] = [
   },
   {
     label: "管理",
-    items: [{ label: "設定", icon: Settings, isPending: true }],
+    items: [
+      { label: "スマホホーム", href: "/home", icon: Home },
+      { label: "設定", icon: Settings, isPending: true },
+    ],
   },
 ];
 

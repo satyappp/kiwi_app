@@ -1,10 +1,7 @@
 import { HarvestHistoryScreen } from "@/features/harvest/components/harvest-history-screen";
-import { getCurrentStaff, listHarvestLogs } from "@/features/harvest";
-import { redirect } from "next/navigation";
+import { listHarvestLogs } from "@/features/harvest";
 
 export default async function HarvestHistoryPage() {
-  const staff = await getCurrentStaff();
-  if (!staff) redirect("/login");
   const rows = await listHarvestLogs(50);
   return <HarvestHistoryScreen rows={rows} />;
 }

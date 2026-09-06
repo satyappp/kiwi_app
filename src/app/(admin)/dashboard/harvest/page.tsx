@@ -1,9 +1,7 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { ArrowLeft, Download, Plus } from "lucide-react";
 
 import {
-  getCurrentStaff,
   HarvestDataAnalytics,
   HarvestTable,
   listHarvestLogs,
@@ -11,8 +9,6 @@ import {
 import type { HarvestAnalyticsEntry } from "@/features/harvest/schema";
 
 export default async function DashboardHarvestPage() {
-  const staff = await getCurrentStaff();
-  if (!staff) redirect("/login");
   const rows = await listHarvestLogs(1000);
   const totalWeight = rows.reduce((sum, row) => sum + row.weightKg, 0);
   const analyticsByMonthAndVariety = new Map<string, HarvestAnalyticsEntry>();

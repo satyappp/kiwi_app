@@ -56,6 +56,7 @@ src/
     queries.ts             data access: reads (Supabase → domain objects)
     actions.ts             application: "use server" mutations / use cases
     index.ts               public surface — the ONLY thing other code imports
+    server.ts              optional server-only public surface
   lib/
     supabase/              infra: server / client / proxy factories
     utils.ts               cn() and other tiny helpers
@@ -85,7 +86,8 @@ Dependencies point **downward only**. A lower layer never imports an upper one.
 ### Cross-feature rule
 
 A feature imports from: `lib/`, `components/ui`, `components/layout`, and its own
-folder. To use another feature, import **only its `index.ts`**. If two features
+folder. To use another feature, import its `index.ts`, or its `server.ts` from a
+Server Component when the dependency is explicitly server-only. If two features
 need the same logic, lift it to `lib/` or a shared feature — don't reach into
 internals.
 
@@ -171,9 +173,12 @@ The product brief weighs *fewer, safer keystrokes* above feature count. So:
 - `lib/supabase/server.ts` → RSC & actions. `client.ts` → browser & realtime.
   `proxy.ts` → session refresh (wired in `src/proxy.ts`).
 - RLS on every table; policies live in migrations.
-- Generated types → `lib/supabase/database.types.ts`
-  (`supabase gen types typescript`). Data access uses these; the domain layer
-  uses hand-written types and the mapping layer bridges them.
+- Required next hardening step: generate `lib/supabase/database.types.ts` from
+  the linked production project with `supabase gen types typescript`, then type
+  every Supabase client with `Database`. This needs a Supabase access token or
+  database connection credentials; do not hand-maintain a file that claims to
+  be generated. The domain layer continues to use hand-written types and the
+  mapping layer bridges them.
 - Env: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
 - Auth is closed registration: `/signup` validates a server-only farm code,
   then creates the user through the server-only Admin API. Public Supabase

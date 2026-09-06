@@ -53,24 +53,6 @@ export async function getHarvestFormOptions(): Promise<HarvestFormOptions> {
   };
 }
 
-/** The signed-in staff member, used to pre-fill 担当者. */
-export async function getCurrentStaff(): Promise<Option | null> {
-  const supabase = await createClient();
-  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
-  const userId = claimsData?.claims?.sub;
-
-  if (claimsError || !userId) return null;
-
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, display_name")
-    .eq("id", userId)
-    .single();
-
-  if (error || !data) return null;
-  return { id: data.id, name: data.display_name };
-}
-
 type ExpandedHarvestRow = {
   work_record_id: string;
   title: string;
