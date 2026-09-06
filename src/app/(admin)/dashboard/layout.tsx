@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -13,7 +14,18 @@ export default async function DashboardLayout({
 }) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
-  if (!data?.claims?.sub) redirect("/login");
+  const userId = data?.claims?.sub;
+  if (!userId) redirect("/login");
 
-  return <div className="min-h-dvh bg-background">{children}</div>;
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("id", userId)
+    .maybeSingle();
+
+  return (
+    <DashboardShell staffName={profile?.display_name ?? "スタッフ"}>
+      {children}
+    </DashboardShell>
+  );
 }

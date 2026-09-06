@@ -43,8 +43,9 @@ src/
       harvest/new/page.tsx  "/harvest/new" → <NewHarvestScreen/>
     (admin)/                management surface — route group, no URL segment
       dashboard/
-        layout.tsx          sidebar shell
-        page.tsx            "/dashboard"
+        layout.tsx          responsive sidebar / drawer shell
+        page.tsx            "/dashboard"         → live harvest overview
+        harvest/page.tsx    "/dashboard/harvest" → harvest table
   components/
     ui/                     shadcn primitives — design-system, feature-agnostic
     layout/                 shared chrome: <KiwiBackdrop/>, <BackButton/>, nav
@@ -60,7 +61,8 @@ src/
   proxy.ts                 session refresh (Next 16 "proxy", was "middleware")
 ```
 
-Current features: `auth`, `home`, `harvest`, `sorting`, `ripening`. Planned (see task list):
+Current features: `auth`, `home`, `harvest`, `sorting`, `ripening`. The dashboard
+shell is live, with harvest as its first real data section. Planned (see task list):
 `cold-storage`, `inventory`, `shipments`, `orders`, `customers`,
 `tasks`, `dashboard`.
 

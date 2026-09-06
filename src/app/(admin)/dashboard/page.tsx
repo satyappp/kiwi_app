@@ -1,10 +1,24 @@
-export default function DashboardPage() {
-  return (
-    <main className="mx-auto flex min-h-dvh max-w-6xl flex-col items-center justify-center px-6 text-center">
-      <h1 className="text-2xl font-bold text-kiwi-ink">管理ダッシュボード</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        準備中 — 収穫分析・在庫・追熟・リマインドをここに表示します。
-      </p>
-    </main>
-  );
+import {
+  getCurrentStaff,
+  getHarvestDashboardData,
+  HarvestDashboard,
+  type HarvestPeriod,
+} from "@/features/harvest";
+import { redirect } from "next/navigation";
+
+function parsePeriod(value: string | string[] | undefined): HarvestPeriod {
+  return value === "today" || value === "month" ? value : "week";
+}
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string | string[] }>;
+}) {
+  const period = parsePeriod((await searchParams).period);
+  const staff = await getCurrentStaff();
+  if (!staff) redirect("/login");
+  const data = await getHarvestDashboardData(period);
+
+  return <HarvestDashboard data={data} staffName={staff.name} />;
 }
