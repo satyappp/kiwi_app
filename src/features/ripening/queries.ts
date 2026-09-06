@@ -4,6 +4,7 @@ import type {
   RipeningStatus,
   StaffOption,
 } from "@/features/ripening/schema";
+import { requireDbValue } from "@/lib/supabase/guards";
 import { createClient } from "@/lib/supabase/server";
 
 function toNumber(value: number | string | null) {
@@ -71,26 +72,50 @@ export async function getRipeningFormOptions(): Promise<RipeningFormOptions> {
       name: row.name,
     })),
     rules: (rulesResult.data ?? []).map((row) => ({
-      id: row.id,
-      varietyId: row.variety_id,
-      varietyName: row.variety_name,
-      startMonth: row.start_month,
+      id: requireDbValue(row.id, "ripening_rules_expanded.id"),
+      varietyId: requireDbValue(
+        row.variety_id,
+        "ripening_rules_expanded.variety_id",
+      ),
+      varietyName: requireDbValue(
+        row.variety_name,
+        "ripening_rules_expanded.variety_name",
+      ),
+      startMonth: requireDbValue(
+        row.start_month,
+        "ripening_rules_expanded.start_month",
+      ),
       ethyleneTemperatureC: toNullableNumber(row.ethylene_temperature_c),
       ethyleneDurationHours: toNullableNumber(row.ethylene_duration_hours),
       restingTemperatureC: toNullableNumber(row.resting_temperature_c),
       restingDurationHours: toNullableNumber(row.resting_duration_hours),
-      isScheduleConfigured: row.is_schedule_configured,
+      isScheduleConfigured: requireDbValue(
+        row.is_schedule_configured,
+        "ripening_rules_expanded.is_schedule_configured",
+      ),
     })),
     sortingSources: (sourcesResult.data ?? []).map((row) => ({
-      id: row.sorting_log_id,
-      title: row.sorting_title,
-      harvestTitle: row.harvest_title,
-      varietyId: row.variety_id,
-      varietyName: row.variety_name,
-      plotName: row.plot_name,
-      sizeCode: row.size_code,
-      sortingDate: row.sorting_date,
-      ethyleneStartDeadline: row.ethylene_start_deadline,
+      id: requireDbValue(row.sorting_log_id, "sorting_ripening_status.sorting_log_id"),
+      title: requireDbValue(row.sorting_title, "sorting_ripening_status.sorting_title"),
+      harvestTitle: requireDbValue(
+        row.harvest_title,
+        "sorting_ripening_status.harvest_title",
+      ),
+      varietyId: requireDbValue(row.variety_id, "sorting_ripening_status.variety_id"),
+      varietyName: requireDbValue(
+        row.variety_name,
+        "sorting_ripening_status.variety_name",
+      ),
+      plotName: requireDbValue(row.plot_name, "sorting_ripening_status.plot_name"),
+      sizeCode: requireDbValue(row.size_code, "sorting_ripening_status.size_code"),
+      sortingDate: requireDbValue(
+        row.sorting_date,
+        "sorting_ripening_status.sorting_date",
+      ),
+      ethyleneStartDeadline: requireDbValue(
+        row.ethylene_start_deadline,
+        "sorting_ripening_status.ethylene_start_deadline",
+      ),
       sortedWeightKg: toNumber(row.sorted_weight_kg),
       allocatedWeightKg: toNumber(row.ripening_allocated_weight_kg),
       availableWeightKg: toNumber(row.available_weight_kg),
@@ -134,25 +159,42 @@ export async function listActiveRipeningStatuses(): Promise<RipeningStatus[]> {
   }
 
   return (data ?? []).map((row) => ({
-    id: row.work_record_id,
+    id: requireDbValue(row.work_record_id, "ripening_batches_expanded.work_record_id"),
     ripeningNo: Number(row.ripening_no),
-    title: row.ripening_title,
-    locationName: row.ripening_location,
-    varietyName: row.variety_name,
+    title: requireDbValue(row.ripening_title, "ripening_batches_expanded.ripening_title"),
+    locationName: requireDbValue(
+      row.ripening_location,
+      "ripening_batches_expanded.ripening_location",
+    ),
+    varietyName: requireDbValue(
+      row.variety_name,
+      "ripening_batches_expanded.variety_name",
+    ),
     weightKg: toNumber(row.weight_kg),
     sortingTitles: Array.isArray(row.sorting_titles) ? row.sorting_titles : [],
-    ethyleneEndedAt: row.ethylene_ended_at,
-    shippableAt: row.shippable_at,
-    phase: toPhase(row.phase),
-    nextCheckAt: row.next_check_at,
+    ethyleneEndedAt: requireDbValue(
+      row.ethylene_ended_at,
+      "ripening_batches_expanded.ethylene_ended_at",
+    ),
+    shippableAt: requireDbValue(
+      row.shippable_at,
+      "ripening_batches_expanded.shippable_at",
+    ),
+    phase: toPhase(requireDbValue(row.phase, "ripening_batches_expanded.phase")),
+    nextCheckAt: requireDbValue(
+      row.next_check_at,
+      "ripening_batches_expanded.next_check_at",
+    ),
     nextCheckType:
       row.next_check_type === "ethylene_end" ||
       row.next_check_type === "shippable"
         ? row.next_check_type
         : null,
-    isEthyleneProcessing: row.is_ethylene_processing,
-    isOverdue: row.is_overdue,
-    isDueSoon: row.is_due_soon,
+    isEthyleneProcessing: requireDbValue(
+      row.is_ethylene_processing,
+      "ripening_batches_expanded.is_ethylene_processing",
+    ),
+    isOverdue: requireDbValue(row.is_overdue, "ripening_batches_expanded.is_overdue"),
+    isDueSoon: requireDbValue(row.is_due_soon, "ripening_batches_expanded.is_due_soon"),
   }));
 }
-

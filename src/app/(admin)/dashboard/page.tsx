@@ -1,13 +1,12 @@
 import {
-  getCurrentStaff,
   getHarvestDashboardData,
   HarvestDashboard,
   type HarvestPeriod,
 } from "@/features/harvest";
-import { redirect } from "next/navigation";
+import { getCurrentStaff } from "@/features/auth/server";
 
 function parsePeriod(value: string | string[] | undefined): HarvestPeriod {
-  return value === "today" || value === "month" ? value : "week";
+  return value === "today" || value === "week" ? value : "month";
 }
 
 export default async function DashboardPage({
@@ -16,9 +15,10 @@ export default async function DashboardPage({
   searchParams: Promise<{ period?: string | string[] }>;
 }) {
   const period = parsePeriod((await searchParams).period);
-  const staff = await getCurrentStaff();
-  if (!staff) redirect("/login");
-  const data = await getHarvestDashboardData(period);
+  const [staff, data] = await Promise.all([
+    getCurrentStaff(),
+    getHarvestDashboardData(period),
+  ]);
 
-  return <HarvestDashboard data={data} staffName={staff.name} />;
+  return <HarvestDashboard data={data} staffName={staff?.name ?? "スタッフ"} />;
 }

@@ -14,7 +14,7 @@ const periods: Array<{ value: HarvestPeriod; label: string }> = [
 ];
 
 function periodHref(period: HarvestPeriod) {
-  return period === "week" ? "/dashboard" : `/dashboard?period=${period}`;
+  return period === "month" ? "/dashboard" : `/dashboard?period=${period}`;
 }
 
 export function HarvestDashboard({ data, staffName }: { data: HarvestDashboardData; staffName: string }) {

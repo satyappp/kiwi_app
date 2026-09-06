@@ -9,6 +9,16 @@ Canonical SQL lives in `migrations/`, applied by pasting into the
 2. Copy its whole contents into the SQL editor and run it. Each file is
    written to be safe to run more than once.
 3. Commit the file so the schema history stays in git.
+4. Regenerate the TypeScript types: `npm run db:types`. Commit the updated
+   `src/lib/supabase/database.types.ts` in the same change. Run `npx tsc
+   --noEmit` afterwards — a red build here means app code referenced a column
+   the migration renamed or dropped.
+
+`npm run db:types` reads the **live** hosted schema (project
+`kgpvgpddoajuhljmeaul`) and rewrites `database.types.ts`. It needs the
+Supabase CLI authenticated once via `npx supabase login`. If the command
+prints nothing and the file is unchanged, the code already matches the
+database.
 
 ## Authentication
 

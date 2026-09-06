@@ -2,6 +2,8 @@ import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
 
+import type { AppDatabase } from "@/lib/supabase/app-database.types";
+
 /** Server-only client for trusted Auth administration. */
 export function createAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -11,7 +13,7 @@ export function createAdminClient() {
     throw new Error("Supabase admin environment variables are not configured");
   }
 
-  return createClient(url, secretKey, {
+  return createClient<AppDatabase>(url, secretKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,

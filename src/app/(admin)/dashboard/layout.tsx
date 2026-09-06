@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { DashboardShell } from "@/components/layout/dashboard-shell";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentStaff } from "@/features/auth/server";
 
 /**
  * Management surface — the PC dashboard used in the office (収穫分析 / 在庫 /
@@ -12,19 +12,11 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  const userId = data?.claims?.sub;
-  if (!userId) redirect("/login?next=/dashboard");
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("display_name")
-    .eq("id", userId)
-    .maybeSingle();
+  const staff = await getCurrentStaff();
+  if (!staff) redirect("/login?next=/dashboard");
 
   return (
-    <DashboardShell staffName={profile?.display_name ?? "スタッフ"}>
+    <DashboardShell staffName={staff.name}>
       {children}
     </DashboardShell>
   );
