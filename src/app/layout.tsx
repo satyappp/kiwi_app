@@ -11,8 +11,8 @@ const notoSansJP = Noto_Sans_JP({
 });
 
 export const metadata: Metadata = {
-  title: "キウイ農園",
-  description: "収穫から出荷までをつなぐ、キウイ農園の管理アプリ",
+  title: "ReFruits",
+  description: "収穫から出荷までをつなぐ、ReFruits農園管理アプリ",
 };
 
 export default function RootLayout({

@@ -64,7 +64,9 @@ export async function createHarvest(
   }
 
   revalidatePath("/");
+  revalidatePath("/harvest");
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/harvest");
 
   return { ok: true, id: data.id };
 }

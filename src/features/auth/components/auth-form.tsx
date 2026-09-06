@@ -9,7 +9,11 @@ import { Label } from "@/components/ui/label";
 import { login, signup } from "@/features/auth/actions";
 import type { AuthActionState } from "@/features/auth/schema";
 
-type AuthFormProps = { mode: "login" | "signup"; accountCreated?: boolean };
+type AuthFormProps = {
+  mode: "login" | "signup";
+  accountCreated?: boolean;
+  nextPath?: string;
+};
 const initialState: AuthActionState = {};
 const inputClass = "h-12 rounded-xl border-input bg-white/90 px-3.5 text-[15px] shadow-sm";
 
@@ -18,13 +22,18 @@ function FieldError({ errors }: { errors?: string[] }) {
   return <p className="text-sm text-destructive">{errors[0]}</p>;
 }
 
-export function AuthForm({ mode, accountCreated = false }: AuthFormProps) {
+export function AuthForm({
+  mode,
+  accountCreated = false,
+  nextPath = "/dashboard",
+}: AuthFormProps) {
   const action = mode === "login" ? login : signup;
   const [state, formAction, isPending] = useActionState(action, initialState);
   const isLogin = mode === "login";
 
   return (
     <form action={formAction} className="space-y-3.5 sm:space-y-4" noValidate>
+      <input type="hidden" name="next" value={nextPath} />
       {accountCreated && (
         <p className="rounded-xl bg-primary/10 px-4 py-3 text-sm font-medium text-kiwi-ink">
           アカウントを作成しました。ログインしてください。
@@ -72,7 +81,10 @@ export function AuthForm({ mode, accountCreated = false }: AuthFormProps) {
 
       <p className="text-center text-sm text-muted-foreground">
         {isLogin ? "初めて利用する方は" : "既にアカウントをお持ちの方は"}{" "}
-        <Link href={isLogin ? "/signup" : "/login"} className="font-bold text-primary underline-offset-4 hover:underline">
+        <Link
+          href={`${isLogin ? "/signup" : "/login"}?next=${encodeURIComponent(nextPath)}`}
+          className="font-bold text-primary underline-offset-4 hover:underline"
+        >
           {isLogin ? "アカウント作成" : "ログイン"}
         </Link>
       </p>

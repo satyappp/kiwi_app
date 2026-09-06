@@ -62,3 +62,50 @@ export type HarvestFormOptions = {
   treeBlocks: TreeBlock[];
   varieties: Option[];
 };
+
+export type HarvestPeriod = "today" | "week" | "month";
+
+export type HarvestStatus = "completed" | "overdue" | "due-soon" | "pending";
+
+export type HarvestLogRow = {
+  id: string;
+  title: string;
+  workDate: string;
+  workTime: string | null;
+  varietyName: string;
+  plotName: string;
+  treeBlockName: string | null;
+  branch: string | null;
+  weightKg: number;
+  sortedWeightKg: number;
+  remainingWeightKg: number;
+  sortingDeadline: string;
+  staffName: string;
+  notes: string | null;
+  status: HarvestStatus;
+};
+
+export type HarvestChartPoint = {
+  label: string;
+  weightKg: number;
+};
+
+export type HarvestAnalyticsEntry = {
+  month: string;
+  varietyName: string;
+  weightKg: number;
+  recordCount: number;
+};
+
+export type HarvestDashboardData = {
+  period: HarvestPeriod;
+  periodLabel: string;
+  totalWeightKg: number;
+  recordCount: number;
+  sortedWeightKg: number;
+  unsortedWeightKg: number;
+  attentionCount: number;
+  dailyWeights: HarvestChartPoint[];
+  recentHarvests: HarvestLogRow[];
+  nextAction: HarvestLogRow | null;
+};

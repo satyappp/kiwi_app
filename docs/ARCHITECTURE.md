@@ -11,7 +11,7 @@ A kiwi-farm operations system with **two surfaces over one backend**:
 
 | Surface | Route | Primary device | Shell |
 |---|---|---|---|
-| **Operational** (quick entry) | `/`, `/harvest/new`, … | phone (installed PWA) | mobile: centred column, watercolor backdrop, per-screen header |
+| **Operational** (quick entry) | `/home`, `/harvest/new`, … | phone (installed PWA) | mobile: centred column, watercolor backdrop, per-screen header |
 | **Management** (dashboard) | `/dashboard`, `/dashboard/*` | office PC | desktop: sidebar, wide grids |
 
 Same auth, same Supabase, same domain code. The split is about **layout and
@@ -19,13 +19,13 @@ entry point**, never about forking business logic.
 
 ### Entry behaviour
 
-- The PWA manifest `start_url` is `/`, so the installed phone app opens the
+- The PWA manifest `start_url` is `/home`, so the installed phone app opens the
   quick-entry home. No device detection needed — only the installed app uses
   `start_url`.
-- Web visitors also land on `/`. Later, once auth/roles exist, add a
-  **role-based** redirect (`管理者` → `/dashboard`) in one place
-  (`src/proxy.ts` or the `(ops)` layout). **Never sniff user-agent or viewport
-  to decide the surface** — device ≠ role ≠ intent.
+- Web visitors land on `/`, which redirects to `/dashboard`. Login preserves a
+  validated local `next` path, so an unauthenticated PWA launch returns to
+  `/home` while a normal web login returns to `/dashboard`. Never sniff the
+  user-agent or viewport to choose a surface.
 - Both surfaces stay usable on any screen size; each is just optimised for its
   primary context.
 
@@ -37,14 +37,16 @@ entry point**, never about forking business logic.
 src/
   app/                      ── routing only (thin)
     layout.tsx              root: <html>, fonts, metadata
+    page.tsx                "/" → redirect to "/dashboard"
     (ops)/                  operational surface — route group, no URL segment
       layout.tsx            mobile shell + <KiwiBackdrop/>
-      page.tsx              "/"            → <QuickEntryHome/>
+      home/page.tsx         "/home"         → <QuickEntryHome/>
       harvest/new/page.tsx  "/harvest/new" → <NewHarvestScreen/>
     (admin)/                management surface — route group, no URL segment
       dashboard/
-        layout.tsx          sidebar shell
-        page.tsx            "/dashboard"
+        layout.tsx          responsive sidebar / drawer shell
+        page.tsx            "/dashboard"         → live harvest overview
+        harvest/page.tsx    "/dashboard/harvest" → harvest table
   components/
     ui/                     shadcn primitives — design-system, feature-agnostic
     layout/                 shared chrome: <KiwiBackdrop/>, <BackButton/>, nav
@@ -60,7 +62,8 @@ src/
   proxy.ts                 session refresh (Next 16 "proxy", was "middleware")
 ```
 
-Current features: `auth`, `home`, `harvest`, `sorting`, `ripening`. Planned (see task list):
+Current features: `auth`, `home`, `harvest`, `sorting`, `ripening`. The dashboard
+shell is live, with harvest as its first real data section. Planned (see task list):
 `cold-storage`, `inventory`, `shipments`, `orders`, `customers`,
 `tasks`, `dashboard`.
 
