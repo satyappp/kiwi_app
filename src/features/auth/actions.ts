@@ -14,6 +14,16 @@ function codesMatch(candidate: string, expected: string) {
   return timingSafeEqual(candidateHash, expectedHash);
 }
 
+function safeNextPath(value: FormDataEntryValue | null) {
+  if (
+    typeof value !== "string" ||
+    !/^\/(?!\/)[a-zA-Z0-9/_?=&%.-]*$/.test(value)
+  ) {
+    return "/dashboard";
+  }
+  return value;
+}
+
 export async function login(
   _previousState: AuthActionState,
   formData: FormData,
@@ -30,7 +40,7 @@ export async function login(
   }
 
   revalidatePath("/", "layout");
-  redirect("/");
+  redirect(safeNextPath(formData.get("next")));
 }
 
 export async function signup(
@@ -71,7 +81,8 @@ export async function signup(
     return { formError: "アカウントを作成できませんでした。時間をおいて再度お試しください" };
   }
 
-  redirect("/login?created=1");
+  const next = safeNextPath(formData.get("next"));
+  redirect(`/login?created=1&next=${encodeURIComponent(next)}`);
 }
 
 export async function logout() {

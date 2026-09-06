@@ -90,9 +90,11 @@ export type HarvestChartPoint = {
   weightKg: number;
 };
 
-export type HarvestBreakdown = {
-  name: string;
+export type HarvestAnalyticsEntry = {
+  month: string;
+  varietyName: string;
   weightKg: number;
+  recordCount: number;
 };
 
 export type HarvestDashboardData = {
@@ -100,11 +102,10 @@ export type HarvestDashboardData = {
   periodLabel: string;
   totalWeightKg: number;
   recordCount: number;
+  sortedWeightKg: number;
   unsortedWeightKg: number;
   attentionCount: number;
   dailyWeights: HarvestChartPoint[];
-  varietyWeights: HarvestBreakdown[];
-  plotWeights: HarvestBreakdown[];
   recentHarvests: HarvestLogRow[];
   nextAction: HarvestLogRow | null;
 };

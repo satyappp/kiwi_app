@@ -202,14 +202,24 @@ export async function listHarvestLogs(limit = 100): Promise<HarvestLogRow[]> {
   const ids = (rows ?? []).map((row) => row.work_record_id);
   if (ids.length === 0) return [];
 
-  const { data: statuses, error: statusError } = await supabase
-    .from("harvest_sorting_status")
-    .select("harvest_log_id, sorted_weight_kg, remaining_unsorted_kg")
-    .in("harvest_log_id", ids);
-
-  if (statusError) {
-    throw new Error(`収穫状況の取得に失敗しました (${statusError.code})`);
+  // Keep PostgREST URLs comfortably below proxy limits for the 1,000-row table.
+  const statusChunks = Array.from(
+    { length: Math.ceil(ids.length / 150) },
+    (_, index) => ids.slice(index * 150, (index + 1) * 150),
+  );
+  const statusResults = await Promise.all(
+    statusChunks.map((chunk) =>
+      supabase
+        .from("harvest_sorting_status")
+        .select("harvest_log_id, sorted_weight_kg, remaining_unsorted_kg")
+        .in("harvest_log_id", chunk),
+    ),
+  );
+  const failedStatus = statusResults.find((result) => result.error);
+  if (failedStatus?.error) {
+    throw new Error(`収穫状況の取得に失敗しました (${failedStatus.error.code})`);
   }
+  const statuses = statusResults.flatMap((result) => result.data ?? []);
 
   return mapHarvestRows(
     (rows ?? []) as ExpandedHarvestRow[],
@@ -278,13 +288,9 @@ export async function getHarvestDashboardData(
     (log) => log.status === "overdue" || log.status === "due-soon",
   );
   const daily = new Map<string, number>();
-  const varieties = new Map<string, number>();
-  const plots = new Map<string, number>();
 
   for (const log of periodLogs) {
     daily.set(log.workDate, (daily.get(log.workDate) ?? 0) + log.weightKg);
-    varieties.set(log.varietyName, (varieties.get(log.varietyName) ?? 0) + log.weightKg);
-    plots.set(log.plotName, (plots.get(log.plotName) ?? 0) + log.weightKg);
   }
 
   return {
@@ -292,6 +298,7 @@ export async function getHarvestDashboardData(
     periodLabel: range.label,
     totalWeightKg: periodLogs.reduce((sum, log) => sum + log.weightKg, 0),
     recordCount: periodLogs.length,
+    sortedWeightKg: periodLogs.reduce((sum, log) => sum + log.sortedWeightKg, 0),
     unsortedWeightKg: periodLogs.reduce(
       (sum, log) => sum + log.remainingWeightKg,
       0,
@@ -301,12 +308,6 @@ export async function getHarvestDashboardData(
       label: `${Number(date.slice(5, 7))}/${Number(date.slice(8, 10))}`,
       weightKg,
     })),
-    varietyWeights: [...varieties.entries()]
-      .map(([name, weightKg]) => ({ name, weightKg }))
-      .sort((a, b) => b.weightKg - a.weightKg),
-    plotWeights: [...plots.entries()]
-      .map(([name, weightKg]) => ({ name, weightKg }))
-      .sort((a, b) => b.weightKg - a.weightKg),
     recentHarvests,
     nextAction: attentionLogs[0] ?? null,
   };

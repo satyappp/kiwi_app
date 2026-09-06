@@ -32,7 +32,7 @@ export const dashboardNavigation: NavigationSection[] = [
       { label: "収穫データ", href: "/dashboard/harvest", icon: Sprout },
       { label: "選果管理", icon: ClipboardList, isPending: true },
       { label: "追熟管理", icon: Timer, isPending: true },
-      { label: "冷蔵・在庫", icon: Snowflake, isPending: true },
+      { label: "在庫確認", icon: Snowflake, isPending: true },
       { label: "出荷管理", icon: Truck, isPending: true },
     ],
   },
@@ -53,10 +53,13 @@ export const mobileNavigation: NavigationSection[] = [
   {
     label: "作業",
     items: [
-      { label: "ホーム", href: "/", icon: Home },
+      { label: "ホーム", href: "/home", icon: Home },
       { label: "収穫を記録", href: "/harvest/new", icon: Sprout },
       { label: "選果を入力", href: "/sorting/new", icon: ClipboardList },
       { label: "追熟を開始", href: "/ripening/new", icon: Timer },
+      { label: "在庫確認", icon: Snowflake, isPending: true },
+      { label: "出荷処理", icon: Truck, isPending: true },
+      { label: "納品書作成", icon: FileText, isPending: true },
     ],
   },
   {

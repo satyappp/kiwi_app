@@ -2,13 +2,33 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, Download, Plus } from "lucide-react";
 
-import { getCurrentStaff, HarvestTable, listHarvestLogs } from "@/features/harvest";
+import {
+  getCurrentStaff,
+  HarvestDataAnalytics,
+  HarvestTable,
+  listHarvestLogs,
+} from "@/features/harvest";
+import type { HarvestAnalyticsEntry } from "@/features/harvest/schema";
 
 export default async function DashboardHarvestPage() {
   const staff = await getCurrentStaff();
   if (!staff) redirect("/login");
-  const rows = await listHarvestLogs(250);
+  const rows = await listHarvestLogs(1000);
   const totalWeight = rows.reduce((sum, row) => sum + row.weightKg, 0);
+  const analyticsByMonthAndVariety = new Map<string, HarvestAnalyticsEntry>();
+
+  for (const row of rows) {
+    const month = row.workDate.slice(0, 7);
+    const key = `${month}\u0000${row.varietyName}`;
+    const current = analyticsByMonthAndVariety.get(key);
+    analyticsByMonthAndVariety.set(key, {
+      month,
+      varietyName: row.varietyName,
+      weightKg: (current?.weightKg ?? 0) + row.weightKg,
+      recordCount: (current?.recordCount ?? 0) + 1,
+    });
+  }
+  const analyticsEntries = [...analyticsByMonthAndVariety.values()];
 
   return (
     <div className="space-y-6">
@@ -49,12 +69,14 @@ export default async function DashboardHarvestPage() {
         </article>
       </section>
 
+      <HarvestDataAnalytics entries={analyticsEntries} />
+
       <section className="overflow-hidden rounded-2xl border border-white/80 bg-white/90 shadow-[0_14px_34px_-22px_rgba(55,75,35,.28)]">
         <div className="border-b px-5 py-4">
           <h2 className="font-bold text-kiwi-ink">収穫記録一覧</h2>
-          <p className="mt-1 text-xs text-muted-foreground">最大250件を表示</p>
+          <p className="mt-1 text-xs text-muted-foreground">列名を押すと並び替えできます・最大1,000件</p>
         </div>
-        <HarvestTable rows={rows} />
+        <HarvestTable rows={rows} sortable pageSize={25} />
       </section>
     </div>
   );

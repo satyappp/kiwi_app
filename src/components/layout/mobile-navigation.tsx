@@ -28,7 +28,7 @@ export function MobileNavigation() {
           <div className="flex items-center gap-3">
             <Image src="/assets/brand/kiwi-mark.png" alt="" width={42} height={42} />
             <div>
-              <SheetTitle className="text-xl font-bold text-kiwi-ink">キウイ農園</SheetTitle>
+              <SheetTitle className="text-xl font-bold text-kiwi-ink">ReFruits</SheetTitle>
               <p className="text-xs text-muted-foreground">作業メニュー</p>
             </div>
           </div>
@@ -41,16 +41,28 @@ export function MobileNavigation() {
                 {section.label}
               </p>
               <div className="space-y-1">
-                {section.items.map((item) => (
-                  <Link
-                    key={item.label}
-                    href={item.href!}
-                    className="flex min-h-12 items-center gap-3 rounded-xl px-3 font-bold text-kiwi-ink transition hover:bg-white active:bg-white"
-                  >
-                    <item.icon className="size-5 text-kiwi" />
-                    {item.label}
-                  </Link>
-                ))}
+                {section.items.map((item) =>
+                  item.href ? (
+                    <Link
+                      key={item.label}
+                      href={item.href}
+                      className="flex min-h-12 items-center gap-3 rounded-xl px-3 font-bold text-kiwi-ink transition hover:bg-white active:bg-white"
+                    >
+                      <item.icon className="size-5 text-kiwi" />
+                      {item.label}
+                    </Link>
+                  ) : (
+                    <div
+                      key={item.label}
+                      aria-disabled="true"
+                      className="flex min-h-12 items-center gap-3 rounded-xl px-3 font-bold text-muted-foreground/65"
+                    >
+                      <item.icon className="size-5" />
+                      <span className="flex-1">{item.label}</span>
+                      <span className="rounded-full bg-kiwi-tan/70 px-2 py-0.5 text-[10px]">準備中</span>
+                    </div>
+                  ),
+                )}
               </div>
             </section>
           ))}

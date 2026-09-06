@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 
 /**
  * Operational surface — the phone-first quick-entry app used in the field
- * (収穫登録 / 選果入力 / 追熟 …). Installed as a PWA, its `start_url` is `/`.
+ * (収穫登録 / 選果入力 / 追熟 …). Installed as a PWA, its `start_url` is `/home`.
  *
  * Provides the shared chrome: the watercolor backdrop and a centered
  * phone-width column. Individual screens supply their own header.
@@ -19,7 +19,7 @@ export default async function OpsLayout({
 }) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
-  if (!data?.claims?.sub) redirect("/login");
+  if (!data?.claims?.sub) redirect("/login?next=/home");
 
   return (
     <>

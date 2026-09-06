@@ -9,11 +9,11 @@ type MenuItem = {
 
 const items: MenuItem[] = [
   { label: "収穫登録", icon: "harvest", href: "/harvest/new" },
-  { label: "選果入力", icon: "sorting", href: "/sorting/new" },
-  { label: "冷蔵保管", icon: "cold" },
+  { label: "選果登録", icon: "sorting", href: "/sorting/new" },
   { label: "追熟開始", icon: "ripening", href: "/ripening/new" },
+  { label: "在庫確認", icon: "cold" },
   { label: "出荷処理", icon: "shipping" },
-  { label: "受注確認", icon: "orders" },
+  { label: "納品書作成", icon: "orders" },
 ];
 
 const cardClass =
@@ -47,7 +47,12 @@ export function MenuGrid() {
             <CardContent item={item} />
           </Link>
         ) : (
-          <button key={item.label} type="button" className={cardClass}>
+          <button
+            key={item.label}
+            type="button"
+            disabled
+            className={`${cardClass} opacity-80`}
+          >
             <CardContent item={item} />
           </button>
         ),

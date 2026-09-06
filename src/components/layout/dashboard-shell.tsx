@@ -67,7 +67,7 @@ function Brand() {
     <Link href="/dashboard" className="flex items-center gap-3 px-6 py-7">
       <Image src="/assets/brand/kiwi-mark.png" alt="" width={48} height={48} />
       <div>
-        <div className="text-2xl font-bold tracking-tight text-kiwi-ink">kiwi</div>
+        <div className="text-2xl font-bold tracking-tight text-kiwi-ink">ReFruits</div>
         <div className="text-[11px] text-muted-foreground">農園の毎日を、軽やかに。</div>
       </div>
     </Link>

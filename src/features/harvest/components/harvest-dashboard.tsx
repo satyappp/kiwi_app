@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { AlertCircle, ArrowRight, CalendarDays, ClipboardList, Scale, Sprout } from "lucide-react";
+import { AlertCircle, ArrowRight, CalendarDays, PackageCheck, Scale, Sprout, Timer, Truck } from "lucide-react";
 
 import { HarvestTable } from "@/features/harvest/components/harvest-table";
-import { HarvestVarietyChart, HarvestWeightChart } from "@/features/harvest/components/harvest-charts";
+import { HarvestWeightChart } from "@/features/harvest/components/harvest-charts";
+import { DashboardQuickActions } from "@/features/harvest/components/dashboard-quick-actions";
 import type { HarvestDashboardData, HarvestPeriod } from "@/features/harvest/schema";
 import { cn } from "@/lib/utils";
 
@@ -26,10 +27,10 @@ export function HarvestDashboard({ data, staffName }: { data: HarvestDashboardDa
   }).format(new Date());
 
   const summaryCards = [
-    { label: `${data.periodLabel}の収穫量`, value: data.totalWeightKg.toLocaleString("ja-JP", { maximumFractionDigits: 2 }), unit: "kg", icon: Sprout, tone: "bg-amber-100 text-amber-700" },
-    { label: "収穫記録", value: data.recordCount.toLocaleString("ja-JP"), unit: "件", icon: ClipboardList, tone: "bg-kiwi-pale/60 text-kiwi-ink" },
-    { label: "未選果量", value: data.unsortedWeightKg.toLocaleString("ja-JP", { maximumFractionDigits: 2 }), unit: "kg", icon: Scale, tone: "bg-emerald-50 text-emerald-700" },
-    { label: "期限の確認", value: data.attentionCount.toLocaleString("ja-JP"), unit: "件", icon: AlertCircle, tone: "bg-orange-50 text-orange-700" },
+    { label: `${data.periodLabel}の収穫量`, value: data.totalWeightKg.toLocaleString("ja-JP", { maximumFractionDigits: 2 }), unit: "kg", detail: `${data.recordCount}件の収穫記録`, icon: Sprout, tone: "bg-amber-100 text-amber-700", isPending: false },
+    { label: "未選果量", value: data.unsortedWeightKg.toLocaleString("ja-JP", { maximumFractionDigits: 2 }), unit: "kg", detail: data.attentionCount > 0 ? `期限確認 ${data.attentionCount}件` : "期限内です", icon: Scale, tone: "bg-kiwi-pale/60 text-kiwi-ink", isPending: false },
+    { label: "追熟中", value: "—", unit: "kg", detail: "追熟機能から連携予定", icon: Timer, tone: "bg-violet-50 text-violet-700", isPending: true },
+    { label: "出荷可能", value: "—", unit: "kg", detail: "在庫機能から連携予定", icon: Truck, tone: "bg-sky-50 text-sky-700", isPending: true },
   ];
 
   return (
@@ -42,10 +43,7 @@ export function HarvestDashboard({ data, staffName }: { data: HarvestDashboardDa
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">今日も農園の一日を始めましょう。</p>
         </div>
-        <Link href="/harvest/new" className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#557f3e] px-5 text-sm font-bold text-white shadow-[0_12px_30px_-12px_rgba(54,93,41,.65)] transition hover:bg-[#466d33]">
-          <span className="text-xl leading-none">＋</span>
-          収穫を記録する
-        </Link>
+        <DashboardQuickActions />
       </section>
 
       <section className="rounded-2xl border border-amber-200/80 bg-[#fffbed]/90 p-4 shadow-[0_10px_28px_-20px_rgba(130,101,20,.35)] sm:flex sm:items-center sm:gap-4 sm:p-5">
@@ -70,8 +68,8 @@ export function HarvestDashboard({ data, staffName }: { data: HarvestDashboardDa
       <section>
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-xl font-bold text-kiwi-ink">収穫の概況</h2>
-            <p className="mt-1 text-sm text-muted-foreground">登録データから自動集計しています</p>
+            <h2 className="text-xl font-bold text-kiwi-ink">農園の概況</h2>
+            <p className="mt-1 text-sm text-muted-foreground">各工程の重要な状況をまとめて確認できます</p>
           </div>
           <div className="inline-flex self-start rounded-xl bg-kiwi-pale/30 p-1">
             {periods.map((period) => (
@@ -91,12 +89,16 @@ export function HarvestDashboard({ data, staffName }: { data: HarvestDashboardDa
               <p className="mt-6 text-3xl font-bold tabular-nums text-kiwi-ink">
                 {card.value}<span className="ml-1.5 text-sm font-medium text-muted-foreground">{card.unit}</span>
               </p>
+              <div className="mt-3 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                <span>{card.detail}</span>
+                {card.isPending && <span className="rounded-full bg-kiwi-tan/60 px-2 py-0.5 text-[10px] font-bold text-kiwi-brown">準備中</span>}
+              </div>
             </article>
           ))}
         </div>
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[1.45fr_1fr]">
+      <section className="grid gap-5 xl:grid-cols-[1.4fr_1fr]">
         <article className="rounded-2xl border border-white/80 bg-white/88 p-5 shadow-[0_14px_34px_-22px_rgba(55,75,35,.28)] sm:p-6">
           <div className="mb-2 flex items-center justify-between">
             <div><h2 className="text-lg font-bold text-kiwi-ink">収穫量の推移</h2><p className="mt-1 text-xs text-muted-foreground">kg / 日</p></div>
@@ -105,9 +107,32 @@ export function HarvestDashboard({ data, staffName }: { data: HarvestDashboardDa
           <HarvestWeightChart data={data.dailyWeights} />
         </article>
         <article className="rounded-2xl border border-white/80 bg-white/88 p-5 shadow-[0_14px_34px_-22px_rgba(55,75,35,.28)] sm:p-6">
-          <h2 className="text-lg font-bold text-kiwi-ink">品種別の収穫量</h2>
-          <p className="mt-1 text-xs text-muted-foreground">上位5品種</p>
-          <HarvestVarietyChart data={data.varietyWeights} />
+          <div className="flex items-start justify-between">
+            <div><h2 className="text-lg font-bold text-kiwi-ink">工程別の状況</h2><p className="mt-1 text-xs text-muted-foreground">収穫から出荷まで</p></div>
+            <PackageCheck className="size-5 text-kiwi" />
+          </div>
+          <div className="mt-6 space-y-5">
+            {[
+              { label: "未選果", value: data.unsortedWeightKg, max: data.totalWeightKg, color: "bg-amber-400", pending: false },
+              { label: "選果済み（期間内）", value: data.sortedWeightKg, max: data.totalWeightKg, color: "bg-kiwi", pending: false },
+              { label: "追熟中", value: 0, max: 1, color: "bg-violet-300", pending: true },
+              { label: "出荷可能在庫", value: 0, max: 1, color: "bg-sky-300", pending: true },
+            ].map((stage) => (
+              <div key={stage.label}>
+                <div className="mb-2 flex items-center justify-between text-sm">
+                  <span className="font-medium text-muted-foreground">{stage.label}</span>
+                  {stage.pending ? (
+                    <span className="rounded-full bg-kiwi-tan/60 px-2 py-0.5 text-[10px] font-bold text-kiwi-brown">準備中</span>
+                  ) : (
+                    <strong className="tabular-nums text-kiwi-ink">{stage.value.toLocaleString("ja-JP", { maximumFractionDigits: 2 })} kg</strong>
+                  )}
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-kiwi-pale/25">
+                  <div className={`h-full rounded-full ${stage.color}`} style={{ width: stage.pending ? "0%" : `${Math.min(100, stage.max > 0 ? (stage.value / stage.max) * 100 : 0)}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
         </article>
       </section>
 

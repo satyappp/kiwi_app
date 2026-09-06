@@ -1,25 +1,22 @@
 "use client";
 
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 
-import type { HarvestBreakdown, HarvestChartPoint } from "@/features/harvest/schema";
-
-const chartColors = ["#78a948", "#a9cb67", "#d6df75", "#f2cf66", "#85b9a1"];
+import type { HarvestChartPoint } from "@/features/harvest/schema";
 
 function EmptyChart() {
   return (
-    <div className="grid h-64 place-items-center text-sm text-muted-foreground">
+    <div className="grid h-56 place-items-center text-sm text-muted-foreground">
       この期間の収穫データはありません。
     </div>
   );
@@ -47,40 +44,36 @@ export function HarvestWeightChart({ data }: { data: HarvestChartPoint[] }) {
   );
 }
 
-export function HarvestVarietyChart({ data }: { data: HarvestBreakdown[] }) {
+export function HarvestMonthlyLineChart({ data }: { data: HarvestChartPoint[] }) {
   if (data.length === 0) return <EmptyChart />;
-  const displayed = data.slice(0, 5);
-  const total = displayed.reduce((sum, item) => sum + item.weightKg, 0);
 
   return (
-    <div className="grid items-center gap-3 sm:grid-cols-[minmax(180px,0.8fr)_1fr]">
-      <div className="relative h-56 min-w-0">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie data={displayed} dataKey="weightKg" nameKey="name" innerRadius={58} outerRadius={84} paddingAngle={2} stroke="none">
-              {displayed.map((item, index) => (
-                <Cell key={item.name} fill={chartColors[index % chartColors.length]} />
-              ))}
-            </Pie>
-            <Tooltip formatter={(value) => `${Number(value).toLocaleString("ja-JP")} kg`} />
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="pointer-events-none absolute inset-0 grid place-content-center text-center">
-          <strong className="text-xl text-kiwi-ink">{total.toLocaleString("ja-JP", { maximumFractionDigits: 1 })}</strong>
-          <span className="text-xs text-muted-foreground">kg</span>
-        </div>
-      </div>
-      <ul className="space-y-2.5">
-        {displayed.map((item, index) => (
-          <li key={item.name} className="flex items-center gap-2 text-xs">
-            <span className="size-2.5 rounded-full" style={{ backgroundColor: chartColors[index % chartColors.length] }} />
-            <span className="min-w-0 flex-1 truncate text-muted-foreground">{item.name}</span>
-            <strong className="tabular-nums text-kiwi-ink">
-              {item.weightKg.toLocaleString("ja-JP", { maximumFractionDigits: 1 })} kg
-            </strong>
-          </li>
-        ))}
-      </ul>
+    <div className="h-56 w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data} margin={{ top: 18, right: 12, left: -18, bottom: 0 }}>
+          <defs>
+            <linearGradient id="harvest-line-fill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#78a948" stopOpacity={0.28} />
+              <stop offset="100%" stopColor="#78a948" stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid vertical={false} stroke="#dfe9d9" strokeDasharray="4 4" />
+          <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "#7c8c78", fontSize: 11 }} />
+          <YAxis axisLine={false} tickLine={false} tick={{ fill: "#7c8c78", fontSize: 11 }} width={54} />
+          <Tooltip
+            formatter={(value) => [`${Number(value).toLocaleString("ja-JP")} kg`, "収穫量"]}
+            contentStyle={{ borderRadius: 14, borderColor: "#dfe9d9", boxShadow: "0 10px 30px rgba(55,75,35,.1)" }}
+          />
+          <Area
+            type="monotone"
+            dataKey="weightKg"
+            stroke="#6f9f43"
+            strokeWidth={3}
+            fill="url(#harvest-line-fill)"
+            activeDot={{ r: 5, fill: "#557f3e", stroke: "white", strokeWidth: 2 }}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
     </div>
   );
 }

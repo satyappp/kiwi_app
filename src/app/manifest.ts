@@ -2,12 +2,12 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
     return {
-        name: "Kiwi Farm",
-        short_name: "Kiwi Farm",
-        description: "Kiwi inventory and workflow management",
-        start_url: "/",
+        name: "ReFruits",
+        short_name: "ReFruits",
+        description: "収穫から出荷までをつなぐ農園管理アプリ",
+        start_url: "/home",
         display: "standalone",
         background_color: "#ffffff",
-        theme_color: "#ffffff",
+        theme_color: "#4caf50",
     };
 }

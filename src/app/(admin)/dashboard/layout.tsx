@@ -15,7 +15,7 @@ export default async function DashboardLayout({
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const userId = data?.claims?.sub;
-  if (!userId) redirect("/login");
+  if (!userId) redirect("/login?next=/dashboard");
 
   const { data: profile } = await supabase
     .from("profiles")
