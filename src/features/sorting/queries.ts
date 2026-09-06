@@ -4,6 +4,7 @@ import type {
   SortingFormOptions,
   StaffOption,
 } from "@/features/sorting/schema";
+import { requireDbValue } from "@/lib/supabase/guards";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -53,20 +54,33 @@ export async function getSortingFormOptions(): Promise<SortingFormOptions> {
 
   // Index the aggregate view once instead of repeatedly scanning it per harvest.
   const statusByHarvestId = new Map(
-    (statusResult.data ?? []).map((row) => [row.harvest_log_id, row]),
+    (statusResult.data ?? []).map((row) => [
+      requireDbValue(row.harvest_log_id, "harvest_sorting_status.harvest_log_id"),
+      row,
+    ]),
   );
 
   const harvests = (harvestsResult.data ?? []).map(
     (row): HarvestSortingOption => {
-      const status = statusByHarvestId.get(row.work_record_id);
+      const id = requireDbValue(
+        row.work_record_id,
+        "harvest_logs_expanded.work_record_id",
+      );
+      const status = statusByHarvestId.get(id);
       return {
-        id: row.work_record_id,
-        title: row.title,
-        workDate: row.work_date,
-        plotName: row.plot_name,
+        id,
+        title: requireDbValue(row.title, "harvest_logs_expanded.title"),
+        workDate: requireDbValue(row.work_date, "harvest_logs_expanded.work_date"),
+        plotName: requireDbValue(row.plot_name, "harvest_logs_expanded.plot_name"),
         treeBlockName: row.tree_block_name,
-        varietyName: row.variety_name,
-        sortingDeadline: row.sorting_deadline,
+        varietyName: requireDbValue(
+          row.variety_name,
+          "harvest_logs_expanded.variety_name",
+        ),
+        sortingDeadline: requireDbValue(
+          row.sorting_deadline,
+          "harvest_logs_expanded.sorting_deadline",
+        ),
         harvestedWeightKg: toNumber(status?.harvested_weight_kg ?? null),
         sortedWeightKg: toNumber(status?.sorted_weight_kg ?? null),
         remainingWeightKg: toNumber(status?.remaining_unsorted_kg ?? null),

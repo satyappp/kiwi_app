@@ -7,6 +7,8 @@ import type {
   Option,
   TreeBlock,
 } from "@/features/harvest/schema";
+import type { Database } from "@/lib/supabase/database.types";
+import { requireDbValue } from "@/lib/supabase/guards";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -53,26 +55,26 @@ export async function getHarvestFormOptions(): Promise<HarvestFormOptions> {
   };
 }
 
-type ExpandedHarvestRow = {
-  work_record_id: string;
-  title: string;
-  work_date: string;
-  work_time: string | null;
-  variety_name: string;
-  plot_name: string;
-  tree_block_name: string | null;
-  branch: string | null;
-  weight_kg: number | string;
-  sorting_deadline: string;
-  staff_name: string;
-  notes: string | null;
-};
-
-type SortingStatusRow = {
-  harvest_log_id: string;
-  sorted_weight_kg: number | string;
-  remaining_unsorted_kg: number | string;
-};
+type HarvestViewRow = Database["public"]["Views"]["harvest_logs_expanded"]["Row"];
+type ExpandedHarvestRow = Pick<
+  HarvestViewRow,
+  | "work_record_id"
+  | "title"
+  | "work_date"
+  | "work_time"
+  | "variety_name"
+  | "plot_name"
+  | "tree_block_name"
+  | "branch"
+  | "weight_kg"
+  | "sorting_deadline"
+  | "staff_name"
+  | "notes"
+>;
+type SortingStatusRow = Pick<
+  Database["public"]["Views"]["harvest_sorting_status"]["Row"],
+  "harvest_log_id" | "sorted_weight_kg" | "remaining_unsorted_kg"
+>;
 
 const harvestListColumns =
   "work_record_id, title, work_date, work_time, variety_name, plot_name, tree_block_name, branch, weight_kg, sorting_deadline, staff_name, notes";
@@ -138,33 +140,44 @@ function mapHarvestRows(
   statuses: SortingStatusRow[],
 ): HarvestLogRow[] {
   const statusByHarvest = new Map(
-    statuses.map((status) => [status.harvest_log_id, status]),
+    statuses.map((status) => [
+      requireDbValue(status.harvest_log_id, "harvest_sorting_status.harvest_log_id"),
+      status,
+    ]),
   );
 
   return rows.map((row) => {
-    const sorting = statusByHarvest.get(row.work_record_id);
+    const id = requireDbValue(row.work_record_id, "harvest_logs_expanded.work_record_id");
+    const sorting = statusByHarvest.get(id);
     const weightKg = numberValue(row.weight_kg);
     const sortedWeightKg = numberValue(sorting?.sorted_weight_kg);
     const remainingWeightKg = sorting
       ? Math.max(0, numberValue(sorting.remaining_unsorted_kg))
       : weightKg;
+    const sortingDeadline = requireDbValue(
+      row.sorting_deadline,
+      "harvest_logs_expanded.sorting_deadline",
+    );
 
     return {
-      id: row.work_record_id,
-      title: row.title,
-      workDate: row.work_date,
+      id,
+      title: requireDbValue(row.title, "harvest_logs_expanded.title"),
+      workDate: requireDbValue(row.work_date, "harvest_logs_expanded.work_date"),
       workTime: row.work_time,
-      varietyName: row.variety_name,
-      plotName: row.plot_name,
+      varietyName: requireDbValue(
+        row.variety_name,
+        "harvest_logs_expanded.variety_name",
+      ),
+      plotName: requireDbValue(row.plot_name, "harvest_logs_expanded.plot_name"),
       treeBlockName: row.tree_block_name,
       branch: row.branch,
       weightKg,
       sortedWeightKg,
       remainingWeightKg,
-      sortingDeadline: row.sorting_deadline,
-      staffName: row.staff_name,
+      sortingDeadline,
+      staffName: requireDbValue(row.staff_name, "harvest_logs_expanded.staff_name"),
       notes: row.notes,
-      status: statusFor(row.sorting_deadline, remainingWeightKg),
+      status: statusFor(sortingDeadline, remainingWeightKg),
     };
   });
 }
@@ -181,7 +194,9 @@ export async function listHarvestLogs(limit = 100): Promise<HarvestLogRow[]> {
 
   if (error) throw new Error(`収穫履歴の取得に失敗しました (${error.code})`);
 
-  const ids = (rows ?? []).map((row) => row.work_record_id);
+  const ids = (rows ?? []).map((row) =>
+    requireDbValue(row.work_record_id, "harvest_logs_expanded.work_record_id"),
+  );
   if (ids.length === 0) return [];
 
   // Keep PostgREST URLs comfortably below proxy limits for the 1,000-row table.
@@ -203,10 +218,7 @@ export async function listHarvestLogs(limit = 100): Promise<HarvestLogRow[]> {
   }
   const statuses = statusResults.flatMap((result) => result.data ?? []);
 
-  return mapHarvestRows(
-    (rows ?? []) as ExpandedHarvestRow[],
-    (statuses ?? []) as SortingStatusRow[],
-  );
+  return mapHarvestRows(rows ?? [], statuses);
 }
 
 /** Live summary used by the first, harvest-focused dashboard. */
@@ -241,13 +253,17 @@ export async function getHarvestDashboardData(
   const error = periodResult.error ?? recentResult.error ?? attentionResult.error;
   if (error) throw new Error(`ダッシュボードの取得に失敗しました (${error.code})`);
 
-  const periodRows = (periodResult.data ?? []) as ExpandedHarvestRow[];
-  const recentRows = (recentResult.data ?? []) as ExpandedHarvestRow[];
-  const attentionRows = (attentionResult.data ?? []) as ExpandedHarvestRow[];
+  const periodRows = periodResult.data ?? [];
+  const recentRows = recentResult.data ?? [];
+  const attentionRows = attentionResult.data ?? [];
   const ids = [
     ...new Set(
       [...periodRows, ...recentRows, ...attentionRows].map(
-        (row) => row.work_record_id,
+        (row) =>
+          requireDbValue(
+            row.work_record_id,
+            "harvest_logs_expanded.work_record_id",
+          ),
       ),
     ),
   ];
@@ -261,7 +277,7 @@ export async function getHarvestDashboardData(
     if (statusResult.error) {
       throw new Error(`収穫状況の取得に失敗しました (${statusResult.error.code})`);
     }
-    statuses = (statusResult.data ?? []) as SortingStatusRow[];
+    statuses = statusResult.data ?? [];
   }
 
   const periodLogs = mapHarvestRows(periodRows, statuses);

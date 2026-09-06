@@ -170,15 +170,15 @@ The product brief weighs *fewer, safer keystrokes* above feature count. So:
 
 ## 8. Supabase
 
-- `lib/supabase/server.ts` → RSC & actions. `client.ts` → browser & realtime.
+- `src/lib/supabase/server.ts` → RSC & actions. `client.ts` → browser & realtime.
   `proxy.ts` → session refresh (wired in `src/proxy.ts`).
 - RLS on every table; policies live in migrations.
-- Required next hardening step: generate `lib/supabase/database.types.ts` from
-  the linked production project with `supabase gen types typescript`, then type
-  every Supabase client with `Database`. This needs a Supabase access token or
-  database connection credentials; do not hand-maintain a file that claims to
-  be generated. The domain layer continues to use hand-written types and the
-  mapping layer bridges them.
+- Generated live-schema types are stored in `src/lib/supabase/database.types.ts`
+  and every Supabase client is typed with the trigger-aware `AppDatabase`.
+  Regenerate that file from the linked project with
+  `supabase gen types typescript`; do not hand-maintain it. The domain layer
+  keeps purpose-built UI types, with query mapping as the boundary between
+  database rows and UI data.
 - Env: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
 - Auth is closed registration: `/signup` validates a server-only farm code,
   then creates the user through the server-only Admin API. Public Supabase

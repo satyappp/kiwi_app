@@ -7,6 +7,7 @@ import {
   ripeningInputSchema,
   type RipeningInput,
 } from "@/features/ripening/schema";
+import { requireDbValue } from "@/lib/supabase/guards";
 import { createClient } from "@/lib/supabase/server";
 
 export type StartRipeningResult =
@@ -106,8 +107,17 @@ export async function startRipening(
     };
   }
 
-  const sourceById = new Map(sources.map((source) => [source.sorting_log_id, source]));
-  const varietyIds = new Set(sources.map((source) => source.variety_id));
+  const sourceById = new Map(
+    sources.map((source) => [
+      requireDbValue(source.sorting_log_id, "sorting_ripening_status.sorting_log_id"),
+      source,
+    ]),
+  );
+  const varietyIds = new Set(
+    sources.map((source) =>
+      requireDbValue(source.variety_id, "sorting_ripening_status.variety_id"),
+    ),
+  );
   if (varietyIds.size !== 1) {
     return {
       ok: false,
@@ -138,7 +148,10 @@ export async function startRipening(
   }
 
   const startedAt = `${input.startDate}T${input.startTime}:00+09:00`;
-  const varietyId = sources[0].variety_id;
+  const varietyId = requireDbValue(
+    sources[0].variety_id,
+    "sorting_ripening_status.variety_id",
+  );
   const { data: batch, error: batchError } = await supabase
     .from("ripening_batches")
     .insert({
