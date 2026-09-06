@@ -6,7 +6,7 @@ import {
 import { getCurrentStaff } from "@/features/auth/server";
 
 function parsePeriod(value: string | string[] | undefined): HarvestPeriod {
-  return value === "today" || value === "month" ? value : "week";
+  return value === "today" || value === "week" ? value : "month";
 }
 
 export default async function DashboardPage({
