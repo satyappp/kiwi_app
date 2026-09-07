@@ -106,6 +106,7 @@ For a new Supabase project, apply the migrations in this exact order:
 2. `supabase/migrations/20260901130000_sorting_schema.sql`
 3. `supabase/migrations/20260902120000_sorting_date_input.sql`
 4. `supabase/migrations/20260902130000_ripening_schema.sql`
+5. `supabase/migrations/20260907193000_sync_variety_master.sql`
 
 Open **Supabase Dashboard → SQL Editor**, paste one complete file, run it, and
 only then proceed to the next file. The migrations establish tables, seed
@@ -180,7 +181,10 @@ Staff allocate available sorted weight into a ripening batch, choose or add a
 location, and confirm processing conditions. The database prevents duplicate
 weight allocation, snapshots the applied rule, calculates processing, resting,
 and shipping timestamps, and exposes the next required check through read
-views.
+views. The form initially selects the sorting source with the nearest ethylene
+deadline, prefills its available weight, then fills conditions from the
+month-and-variety master and the latest batch for the same variety. Staff can
+still select another source and edit every prefilled value before confirming.
 
 ## Database overview
 

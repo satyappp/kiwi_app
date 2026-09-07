@@ -50,9 +50,24 @@ being allocated twice.
 The migration imports the 77 month/variety rows from the provided ripening
 master sheet. Only the values that exist in the sheet are seeded: October
 `紅妃` uses 48 hours of ethylene treatment and 15°C for 120 hours of resting.
-All undecided settings remain `NULL` and must be configured before they can be
-used as automatic defaults. Add the farm's actual ripening locations to
-`ripening_locations` before registering a batch.
+All undecided settings remain `NULL`; the source sheet explicitly describes
+its contents as provisional, so the migration does not invent operating
+conditions. The start form fills missing master values from the latest batch
+for the same variety when one exists. When that month and variety does not yet
+have all four temperature/time values, a confirmed registration saves them as
+the standard condition by default, so later registrations no longer require
+the same manual entry. A complete existing standard is not overwritten unless
+the worker explicitly enables the save; the save can also be turned off for an
+exceptional batch. Add the farm's actual ripening locations to
+`ripening_locations`; after the first location is registered it becomes a
+reusable choice.
+
+## After `20260907193000_sync_variety_master.sql`
+
+Run it after the ripening migration. It aligns `varieties.legacy_code` with
+Google Sheets `品種マスタ / 品種マスタ_マスタ`, including backfilling the four
+varieties first introduced by the ripening master. Rows explicitly marked as
+temporary non-kiwi placeholders (`梨(仮)`, `ぶどう(仮)`) are not imported.
 
 For each batch, the database snapshots the selected rule, calculates the
 ethylene end, resting start, and shippable timestamps, and exposes the current

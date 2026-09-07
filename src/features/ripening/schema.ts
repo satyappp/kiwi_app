@@ -61,6 +61,7 @@ export const ripeningInputSchema = z
         .min(0, "0以上の時間を入力してください"),
     ),
     notificationsEnabled: z.boolean(),
+    saveAsStandard: z.boolean(),
     notes: optionalText.pipe(
       z.string().max(500, "メモは500文字以内で入力してください").optional(),
     ),
@@ -83,6 +84,22 @@ export const ripeningInputSchema = z
         code: "custom",
         message: "同じ選果データが重複しています",
         path: ["items"],
+      });
+    }
+
+    if (input.saveAsStandard && input.ethyleneTemperatureC == null) {
+      context.addIssue({
+        code: "custom",
+        message: "標準値として保存する場合は温度を入力してください",
+        path: ["ethyleneTemperatureC"],
+      });
+    }
+
+    if (input.saveAsStandard && input.restingTemperatureC == null) {
+      context.addIssue({
+        code: "custom",
+        message: "標準値として保存する場合は温度を入力してください",
+        path: ["restingTemperatureC"],
       });
     }
   });
@@ -111,6 +128,16 @@ export type RipeningRuleOption = {
   isScheduleConfigured: boolean;
 };
 
+/** Most recently registered conditions for a variety, used only as a fallback. */
+export type RecentRipeningSetting = {
+  varietyId: string;
+  startedAt: string;
+  ethyleneTemperatureC: number | null;
+  ethyleneDurationHours: number;
+  restingTemperatureC: number | null;
+  restingDurationHours: number;
+};
+
 export type SortingRipeningOption = {
   id: string;
   title: string;
@@ -129,6 +156,7 @@ export type SortingRipeningOption = {
 export type RipeningFormOptions = {
   locations: RipeningLocationOption[];
   rules: RipeningRuleOption[];
+  recentSettings: RecentRipeningSetting[];
   sortingSources: SortingRipeningOption[];
 };
 

@@ -17,6 +17,7 @@ export type StartRipeningResult =
       title: string;
       ethyleneEndedAt: string;
       shippableAt: string;
+      standardSaveWarning?: string;
     }
   | { ok: false; fieldErrors: Record<string, string[]> }
   | { ok: false; formError: string };
@@ -37,6 +38,7 @@ function inputFromFormData(formData: FormData) {
     restingTemperatureC: formData.get("restingTemperatureC"),
     restingDurationHours: formData.get("restingDurationHours"),
     notificationsEnabled: formData.get("notificationsEnabled") === "on",
+    saveAsStandard: formData.get("saveAsStandard") === "on",
     notes: formData.get("notes"),
     items: sortingLogIds.map((sortingLogId, index) => ({
       sortingLogId,
@@ -207,6 +209,34 @@ export async function startRipening(
     };
   }
 
+  let standardSaveWarning: string | undefined;
+  if (input.saveAsStandard) {
+    const startMonth = Number(input.startDate.slice(5, 7));
+    const { error: standardError } = await supabase
+      .from("ripening_rules")
+      .upsert(
+        {
+          variety_id: varietyId,
+          start_month: startMonth,
+          ethylene_temperature_c: input.ethyleneTemperatureC ?? null,
+          ethylene_duration_hours: input.ethyleneProcessingHours,
+          resting_temperature_c: input.restingTemperatureC ?? null,
+          resting_duration_hours: input.restingDurationHours,
+          is_active: true,
+        },
+        { onConflict: "variety_id,start_month" },
+      );
+
+    if (standardError) {
+      console.error("startRipening standard-condition upsert failed", {
+        code: standardError.code,
+        message: standardError.message,
+      });
+      standardSaveWarning =
+        "追熟は登録できましたが、標準条件の保存に失敗しました。";
+    }
+  }
+
   revalidatePath("/");
   revalidatePath("/ripening/new");
   revalidatePath("/dashboard");
@@ -217,6 +247,7 @@ export async function startRipening(
     title: batch.title,
     ethyleneEndedAt: batch.ethylene_ended_at,
     shippableAt: batch.shippable_at,
+    standardSaveWarning,
   };
 }
 

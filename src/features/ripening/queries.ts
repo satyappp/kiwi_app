@@ -54,35 +54,64 @@ function parseBreakdown(value: unknown): RawBreakdown[] {
 /** All live database choices needed by the ripening start form. */
 export async function getRipeningFormOptions(): Promise<RipeningFormOptions> {
   const supabase = await createClient();
-  const [locationsResult, rulesResult, sourcesResult] = await Promise.all([
-    supabase
-      .from("ripening_locations")
-      .select("id, name")
-      .eq("is_active", true)
-      .order("sort_order")
-      .order("name"),
-    supabase
-      .from("ripening_rules_expanded")
-      .select(
-        "id, variety_id, variety_name, start_month, ethylene_temperature_c, ethylene_duration_hours, resting_temperature_c, resting_duration_hours, is_schedule_configured",
-      )
-      .eq("is_active", true)
-      .order("start_month")
-      .order("variety_name"),
-    supabase
-      .from("sorting_ripening_status")
-      .select(
-        "sorting_log_id, sorting_title, harvest_title, variety_id, variety_name, plot_name, size_code, sorting_date, ethylene_start_deadline, sorted_weight_kg, ripening_allocated_weight_kg, available_weight_kg",
-      )
-      .gt("available_weight_kg", 0)
-      .order("ethylene_start_deadline")
-      .order("sorting_date"),
-  ]);
+  const [locationsResult, rulesResult, recentSettingsResult, sourcesResult] =
+    await Promise.all([
+      supabase
+        .from("ripening_locations")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("sort_order")
+        .order("name"),
+      supabase
+        .from("ripening_rules_expanded")
+        .select(
+          "id, variety_id, variety_name, start_month, ethylene_temperature_c, ethylene_duration_hours, resting_temperature_c, resting_duration_hours, is_schedule_configured",
+        )
+        .eq("is_active", true)
+        .order("start_month")
+        .order("variety_name"),
+      supabase
+        .from("ripening_batches")
+        .select(
+          "variety_id, started_at, ethylene_temperature_c, ethylene_processing_hours, resting_temperature_c, resting_duration_hours",
+        )
+        .is("cancelled_at", null)
+        .order("started_at", { ascending: false })
+        .limit(200),
+      supabase
+        .from("sorting_ripening_status")
+        .select(
+          "sorting_log_id, sorting_title, harvest_title, variety_id, variety_name, plot_name, size_code, sorting_date, ethylene_start_deadline, sorted_weight_kg, ripening_allocated_weight_kg, available_weight_kg",
+        )
+        .gt("available_weight_kg", 0)
+        .order("ethylene_start_deadline")
+        .order("sorting_date")
+        .order("sorting_title"),
+    ]);
 
   const error =
-    locationsResult.error ?? rulesResult.error ?? sourcesResult.error;
+    locationsResult.error ??
+    rulesResult.error ??
+    recentSettingsResult.error ??
+    sourcesResult.error;
   if (error) {
     throw new Error(`追熟フォームデータの取得に失敗しました (${error.code})`);
+  }
+
+  const recentSettingsByVariety = new Map<
+    string,
+    RipeningFormOptions["recentSettings"][number]
+  >();
+  for (const row of recentSettingsResult.data ?? []) {
+    if (recentSettingsByVariety.has(row.variety_id)) continue;
+    recentSettingsByVariety.set(row.variety_id, {
+      varietyId: row.variety_id,
+      startedAt: row.started_at,
+      ethyleneTemperatureC: toNullableNumber(row.ethylene_temperature_c),
+      ethyleneDurationHours: toNumber(row.ethylene_processing_hours),
+      restingTemperatureC: toNullableNumber(row.resting_temperature_c),
+      restingDurationHours: toNumber(row.resting_duration_hours),
+    });
   }
 
   return {
@@ -113,6 +142,7 @@ export async function getRipeningFormOptions(): Promise<RipeningFormOptions> {
         "ripening_rules_expanded.is_schedule_configured",
       ),
     })),
+    recentSettings: [...recentSettingsByVariety.values()],
     sortingSources: (sourcesResult.data ?? []).map((row) => ({
       id: requireDbValue(row.sorting_log_id, "sorting_ripening_status.sorting_log_id"),
       title: requireDbValue(row.sorting_title, "sorting_ripening_status.sorting_title"),

@@ -22,7 +22,9 @@ import {
 } from "@/features/ripening/actions";
 import {
   ripeningInputSchema,
+  type RecentRipeningSetting,
   type RipeningFormOptions,
+  type RipeningRuleOption,
   type SortingRipeningOption,
   type StaffOption,
 } from "@/features/ripening/schema";
@@ -130,13 +132,90 @@ function sourceLabel(source: SortingRipeningOption) {
   return `${formatDate(source.sortingDate)}・${source.title}（残 ${formatWeight(source.availableWeightKg)} kg）`;
 }
 
+type DefaultSource = "master" | "master-and-recent" | "recent" | "none";
+
+function resolveRipeningDefaults(
+  source: SortingRipeningOption | undefined,
+  startDate: string,
+  rules: RipeningRuleOption[],
+  recentSettings: RecentRipeningSetting[],
+) {
+  const rule = source
+    ? rules.find(
+        (candidate) =>
+          candidate.varietyId === source.varietyId &&
+          candidate.startMonth === Number(startDate.slice(5, 7)),
+      )
+    : undefined;
+  const recentSetting = source
+    ? recentSettings.find(
+        (candidate) => candidate.varietyId === source.varietyId,
+      )
+    : undefined;
+  const candidates = [
+    [rule?.ethyleneTemperatureC, recentSetting?.ethyleneTemperatureC],
+    [rule?.ethyleneDurationHours, recentSetting?.ethyleneDurationHours],
+    [rule?.restingTemperatureC, recentSetting?.restingTemperatureC],
+    [rule?.restingDurationHours, recentSetting?.restingDurationHours],
+  ] as const;
+  const hasMasterValue = candidates.some(([master]) => master != null);
+  const hasCompleteMaster = candidates.every(([master]) => master != null);
+  const usesRecentValue = candidates.some(
+    ([master, recent]) => master == null && recent != null,
+  );
+  const sourceType: DefaultSource = hasMasterValue
+    ? usesRecentValue
+      ? "master-and-recent"
+      : "master"
+    : usesRecentValue
+      ? "recent"
+      : "none";
+
+  return {
+    rule,
+    recentSetting,
+    sourceType,
+    hasCompleteMaster,
+    ethyleneTemperatureC:
+      rule?.ethyleneTemperatureC ?? recentSetting?.ethyleneTemperatureC ?? null,
+    ethyleneDurationHours:
+      rule?.ethyleneDurationHours ?? recentSetting?.ethyleneDurationHours ?? null,
+    restingTemperatureC:
+      rule?.restingTemperatureC ?? recentSetting?.restingTemperatureC ?? null,
+    restingDurationHours:
+      rule?.restingDurationHours ?? recentSetting?.restingDurationHours ?? null,
+  };
+}
+
+function defaultNotice(source: DefaultSource, hasCompleteMaster: boolean) {
+  if (source === "master") {
+    return hasCompleteMaster
+      ? "追熟マスタの値を反映しました。使用前に条件をご確認ください。"
+      : "追熟マスタの設定済み項目を反映しました。不足項目を入力すると標準値として保存できます。";
+  }
+  if (source === "master-and-recent") {
+    return "追熟マスタの未設定項目を、この品種の直近実績で補いました。使用前に条件をご確認ください。";
+  }
+  if (source === "recent") {
+    return "追熟マスタが未設定のため、この品種の直近実績を反映しました。使用前に条件をご確認ください。";
+  }
+  return "標準条件と直近実績がありません。今回使用する条件を入力してください。";
+}
+
 export function RipeningForm({
   currentStaff,
   options,
   defaultDate,
   defaultTime,
 }: RipeningFormProps) {
-  const { locations, rules, sortingSources } = options;
+  const { locations, rules, recentSettings, sortingSources } = options;
+  const initialSource = sortingSources[0];
+  const initialDefaults = resolveRipeningDefaults(
+    initialSource,
+    defaultDate,
+    rules,
+    recentSettings,
+  );
   const formRef = useRef<HTMLFormElement>(null);
   const nextAllocationKey = useRef(2);
   const isSubmissionConfirmed = useRef(false);
@@ -145,17 +224,36 @@ export function RipeningForm({
   const [startDate, setStartDate] = useState(defaultDate);
   const [startTime, setStartTime] = useState(defaultTime);
   const [locationChoice, setLocationChoice] = useState(
-    locations.length === 0 ? NEW_LOCATION : "",
+    locations.length === 0
+      ? NEW_LOCATION
+      : locations.length === 1
+        ? locations[0].id
+        : "",
   );
   const [newLocationName, setNewLocationName] = useState("");
   const [allocations, setAllocations] = useState<AllocationDraft[]>([
-    { key: 1, sortingLogId: "", weightKg: "" },
+    {
+      key: 1,
+      sortingLogId: initialSource?.id ?? "",
+      weightKg: initialSource?.availableWeightKg.toString() ?? "",
+    },
   ]);
-  const [ethyleneTemperatureC, setEthyleneTemperatureC] = useState("");
-  const [ethyleneProcessingHours, setEthyleneProcessingHours] = useState("");
-  const [restingTemperatureC, setRestingTemperatureC] = useState("");
-  const [restingDurationHours, setRestingDurationHours] = useState("");
+  const [ethyleneTemperatureC, setEthyleneTemperatureC] = useState(
+    initialDefaults.ethyleneTemperatureC?.toString() ?? "",
+  );
+  const [ethyleneProcessingHours, setEthyleneProcessingHours] = useState(
+    initialDefaults.ethyleneDurationHours?.toString() ?? "",
+  );
+  const [restingTemperatureC, setRestingTemperatureC] = useState(
+    initialDefaults.restingTemperatureC?.toString() ?? "",
+  );
+  const [restingDurationHours, setRestingDurationHours] = useState(
+    initialDefaults.restingDurationHours?.toString() ?? "",
+  );
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [saveAsStandard, setSaveAsStandard] = useState(
+    !initialDefaults.hasCompleteMaster,
+  );
   const [notes, setNotes] = useState("");
 
   async function submitRipening(
@@ -167,7 +265,6 @@ export function RipeningForm({
       formRef.current?.reset();
       setStartDate(defaultDate);
       setStartTime(defaultTime);
-      setLocationChoice(locations.length === 0 ? NEW_LOCATION : "");
       setAllocations([
         {
           key: nextAllocationKey.current++,
@@ -180,6 +277,7 @@ export function RipeningForm({
       setRestingTemperatureC("");
       setRestingDurationHours("");
       setNotificationsEnabled(true);
+      setSaveAsStandard(true);
       setNewLocationName("");
       setNotes("");
       setIsCompleteOpen(true);
@@ -199,13 +297,12 @@ export function RipeningForm({
   const firstSource = sortingSources.find(
     (source) => source.id === allocations[0]?.sortingLogId,
   );
-  const selectedRule = firstSource
-    ? rules.find(
-        (rule) =>
-          rule.varietyId === firstSource.varietyId &&
-          rule.startMonth === Number(startDate.slice(5, 7)),
-      )
-    : undefined;
+  const selectedDefaults = resolveRipeningDefaults(
+    firstSource,
+    startDate,
+    rules,
+    recentSettings,
+  );
   const selectedSourceIds = new Set(
     allocations.map((allocation) => allocation.sortingLogId).filter(Boolean),
   );
@@ -227,25 +324,25 @@ export function RipeningForm({
         !selectedSourceIds.has(source.id),
     );
 
-  function applyRule(sourceId: string, date: string) {
+  function applyDefaults(sourceId: string, date: string) {
     const source = sortingSources.find((candidate) => candidate.id === sourceId);
-    const rule = source
-      ? rules.find(
-          (candidate) =>
-            candidate.varietyId === source.varietyId &&
-            candidate.startMonth === Number(date.slice(5, 7)),
-        )
-      : undefined;
+    const defaults = resolveRipeningDefaults(
+      source,
+      date,
+      rules,
+      recentSettings,
+    );
 
-    setEthyleneTemperatureC(rule?.ethyleneTemperatureC?.toString() ?? "");
-    setEthyleneProcessingHours(rule?.ethyleneDurationHours?.toString() ?? "");
-    setRestingTemperatureC(rule?.restingTemperatureC?.toString() ?? "");
-    setRestingDurationHours(rule?.restingDurationHours?.toString() ?? "");
+    setEthyleneTemperatureC(defaults.ethyleneTemperatureC?.toString() ?? "");
+    setEthyleneProcessingHours(defaults.ethyleneDurationHours?.toString() ?? "");
+    setRestingTemperatureC(defaults.restingTemperatureC?.toString() ?? "");
+    setRestingDurationHours(defaults.restingDurationHours?.toString() ?? "");
+    setSaveAsStandard(!defaults.hasCompleteMaster);
   }
 
   function handleStartDateChange(nextDate: string) {
     setStartDate(nextDate);
-    applyRule(allocations[0]?.sortingLogId ?? "", nextDate);
+    applyDefaults(allocations[0]?.sortingLogId ?? "", nextDate);
   }
 
   function handleSourceChange(index: number, sortingLogId: string) {
@@ -262,7 +359,7 @@ export function RipeningForm({
       );
       return index === 0 ? [next[0]] : next;
     });
-    if (index === 0) applyRule(sortingLogId, startDate);
+    if (index === 0) applyDefaults(sortingLogId, startDate);
   }
 
   function handleWeightChange(index: number, weightKg: string) {
@@ -317,6 +414,7 @@ export function RipeningForm({
       restingTemperatureC,
       restingDurationHours,
       notificationsEnabled,
+      saveAsStandard,
       notes,
       items: allocations.map((allocation) => ({
         sortingLogId: allocation.sortingLogId,
@@ -516,20 +614,37 @@ export function RipeningForm({
       </fieldset>
 
       {firstSource && (
-        <div className={`rounded-xl px-4 py-3 text-sm ${selectedRule?.isScheduleConfigured ? "bg-primary/10 text-kiwi-ink" : "bg-kiwi-amber/25 text-kiwi-brown"}`}>
-          <p className="font-bold">
-            {startDate.slice(5, 7).replace(/^0/, "")}月・{firstSource.varietyName}の標準条件
-          </p>
-          <p className="mt-0.5 text-xs leading-5">
-            {selectedRule?.isScheduleConfigured
-              ? "追熟マスタの値を入力欄へ反映しました。必要に応じて変更できます。"
-              : "標準時間が未設定です。今回使用する条件を入力してください。"}
-          </p>
+        <div className={`rounded-xl px-4 py-3 text-sm ${selectedDefaults.sourceType === "none" ? "bg-kiwi-amber/25 text-kiwi-brown" : "bg-primary/10 text-kiwi-ink"}`}>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="font-bold">
+                {startDate.slice(5, 7).replace(/^0/, "")}月・{firstSource.varietyName}の入力初期値
+              </p>
+              <p className="mt-0.5 text-xs leading-5">
+                {defaultNotice(
+                  selectedDefaults.sourceType,
+                  selectedDefaults.hasCompleteMaster,
+                )}
+              </p>
+            </div>
+            {selectedDefaults.sourceType !== "none" && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => applyDefaults(firstSource.id, startDate)}
+                className="h-8 shrink-0 rounded-lg bg-white/75 px-2.5 text-xs font-bold"
+              >
+                <RotateCcw className="size-3.5" />
+                戻す
+              </Button>
+            )}
+          </div>
         </div>
       )}
 
       <div className="grid grid-cols-2 gap-3">
-        <Field label="エチレン温度" htmlFor="ethylene-temperature" optional error={fieldErrors?.ethyleneTemperatureC?.[0]}>
+        <Field label="エチレン温度" htmlFor="ethylene-temperature" optional={!saveAsStandard} error={fieldErrors?.ethyleneTemperatureC?.[0]}>
           <div className="relative">
             <Input
               id="ethylene-temperature"
@@ -538,6 +653,7 @@ export function RipeningForm({
               step="0.1"
               value={ethyleneTemperatureC}
               onChange={(event) => setEthyleneTemperatureC(event.target.value)}
+              required={saveAsStandard}
               className={`${inputClass} pr-10`}
             />
             <span className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-sm text-muted-foreground">℃</span>
@@ -559,7 +675,7 @@ export function RipeningForm({
             <span className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-sm text-muted-foreground">時間</span>
           </div>
         </Field>
-        <Field label="寝かせ温度" htmlFor="resting-temperature" optional error={fieldErrors?.restingTemperatureC?.[0]}>
+        <Field label="エチレン後の保管温度" htmlFor="resting-temperature" optional={!saveAsStandard} error={fieldErrors?.restingTemperatureC?.[0]}>
           <div className="relative">
             <Input
               id="resting-temperature"
@@ -568,12 +684,13 @@ export function RipeningForm({
               step="0.1"
               value={restingTemperatureC}
               onChange={(event) => setRestingTemperatureC(event.target.value)}
+              required={saveAsStandard}
               className={`${inputClass} pr-10`}
             />
             <span className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-sm text-muted-foreground">℃</span>
           </div>
         </Field>
-        <Field label="寝かせ時間" htmlFor="resting-hours" error={fieldErrors?.restingDurationHours?.[0]}>
+        <Field label="エチレン後の保管時間" htmlFor="resting-hours" error={fieldErrors?.restingDurationHours?.[0]}>
           <div className="relative">
             <Input
               id="resting-hours"
@@ -599,13 +716,33 @@ export function RipeningForm({
             <time className="text-right font-bold tabular-nums">{formatDateTime(timeline.start)}</time>
             <span className="text-white/65">エチレン終了</span>
             <time className="text-right font-bold tabular-nums text-kiwi-amber">{formatDateTime(timeline.ethyleneEnd)}</time>
-            <span className="text-white/65">寝かせ開始</span>
+            <span className="text-white/65">保管開始</span>
             <time className="text-right font-bold tabular-nums">{formatDateTime(timeline.ethyleneEnd)}</time>
             <span className="text-white/65">出荷可能</span>
             <time className="text-right font-bold tabular-nums text-kiwi-pale">{formatDateTime(timeline.shippable)}</time>
           </div>
         </section>
       )}
+
+      <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 shadow-sm">
+        <input
+          type="checkbox"
+          name="saveAsStandard"
+          checked={saveAsStandard}
+          onChange={(event) => setSaveAsStandard(event.target.checked)}
+          className="size-5 rounded border-input accent-primary"
+        />
+        <span>
+          <span className="block text-sm font-bold text-kiwi-ink">
+            今回の条件を標準値として保存
+          </span>
+          <span className="mt-0.5 block text-xs text-muted-foreground">
+            {firstSource
+              ? `${startDate.slice(5, 7).replace(/^0/, "")}月・${firstSource.varietyName}の次回入力に使用します`
+              : "月と品種ごとの次回入力に使用します"}
+          </span>
+        </span>
+      </label>
 
       <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-input bg-white/80 px-4 py-3 shadow-sm">
         <input
@@ -666,7 +803,7 @@ export function RipeningForm({
               return `${source?.title ?? "未選択"} ${allocation.weightKg || "0"} kg`;
             }).join(" / ")} />
             <ConfirmationRow label="エチレン" value={`${ethyleneTemperatureC ? `${ethyleneTemperatureC}℃・` : ""}${ethyleneProcessingHours || "未入力"}時間`} />
-            <ConfirmationRow label="寝かせ" value={`${restingTemperatureC ? `${restingTemperatureC}℃・` : ""}${restingDurationHours || "未入力"}時間`} />
+            <ConfirmationRow label="エチレン後の保管" value={`${restingTemperatureC ? `${restingTemperatureC}℃・` : ""}${restingDurationHours || "未入力"}時間`} />
             <ConfirmationRow label="終了予定" value={timeline ? formatDateTime(timeline.ethyleneEnd) : "算出できません"} />
             <ConfirmationRow label="出荷可能" value={timeline ? formatDateTime(timeline.shippable) : "算出できません"} />
             <ConfirmationRow label="通知" value={notificationsEnabled ? "通知対象にする" : "通知対象にしない"} />
@@ -702,6 +839,11 @@ export function RipeningForm({
             <div className="rounded-2xl bg-muted/45 px-4 py-3 text-sm text-kiwi-ink">
               <p>エチレン終了：{formatDateTime(new Date(state.ethyleneEndedAt))}</p>
               <p className="mt-1 font-bold">出荷可能：{formatDateTime(new Date(state.shippableAt))}</p>
+              {state.standardSaveWarning && (
+                <p className="mt-2 text-destructive">
+                  {state.standardSaveWarning}
+                </p>
+              )}
             </div>
           )}
 

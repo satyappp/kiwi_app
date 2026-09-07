@@ -1,16 +1,34 @@
 "use client";
 
 import { ChevronLeft } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 type BackButtonProps = {
+  /** Always navigate here instead of depending on browser history. */
+  href?: string;
   /** Where to go when there is no in-app history to pop (e.g. deep link, reload). */
   fallbackHref?: string;
   className?: string;
 };
 
-export function BackButton({ fallbackHref = "/", className }: BackButtonProps) {
+export function BackButton({
+  href,
+  fallbackHref = "/",
+  className,
+}: BackButtonProps) {
   const router = useRouter();
+  const buttonClassName =
+    "grid size-10 place-items-center rounded-full text-kiwi-ink active:bg-black/5 " +
+    (className ?? "");
+
+  if (href) {
+    return (
+      <Link href={href} aria-label="ホームに戻る" className={buttonClassName}>
+        <ChevronLeft className="size-6" strokeWidth={2.4} />
+      </Link>
+    );
+  }
 
   function goBack() {
     if (window.history.length > 1) {
@@ -25,10 +43,7 @@ export function BackButton({ fallbackHref = "/", className }: BackButtonProps) {
       type="button"
       aria-label="戻る"
       onClick={goBack}
-      className={
-        "grid size-10 place-items-center rounded-full text-kiwi-ink active:bg-black/5 " +
-        (className ?? "")
-      }
+      className={buttonClassName}
     >
       <ChevronLeft className="size-6" strokeWidth={2.4} />
     </button>
