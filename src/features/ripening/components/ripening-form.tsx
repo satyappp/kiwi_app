@@ -208,8 +208,7 @@ export function RipeningForm({
   defaultTime,
 }: RipeningFormProps) {
   const { locations, rules, recentSettings, sortingSources } = options;
-  const initialSource =
-    sortingSources.length === 1 ? sortingSources[0] : undefined;
+  const initialSource = sortingSources[0];
   const initialDefaults = resolveRipeningDefaults(
     initialSource,
     defaultDate,
