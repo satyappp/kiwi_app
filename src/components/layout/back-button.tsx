@@ -4,15 +4,26 @@ import { ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 type BackButtonProps = {
+  /** Always navigate here instead of depending on browser history. */
+  href?: string;
   /** Where to go when there is no in-app history to pop (e.g. deep link, reload). */
   fallbackHref?: string;
   className?: string;
 };
 
-export function BackButton({ fallbackHref = "/", className }: BackButtonProps) {
+export function BackButton({
+  href,
+  fallbackHref = "/",
+  className,
+}: BackButtonProps) {
   const router = useRouter();
 
   function goBack() {
+    if (href) {
+      router.push(href);
+      return;
+    }
+
     if (window.history.length > 1) {
       router.back();
     } else {

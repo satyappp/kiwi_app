@@ -66,7 +66,8 @@ export async function getRipeningFormOptions(): Promise<RipeningFormOptions> {
         )
         .gt("available_weight_kg", 0)
         .order("ethylene_start_deadline")
-        .order("sorting_date"),
+        .order("sorting_date")
+        .order("sorting_title"),
     ]);
 
   const error =

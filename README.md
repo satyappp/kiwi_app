@@ -181,10 +181,10 @@ Staff allocate available sorted weight into a ripening batch, choose or add a
 location, and confirm processing conditions. The database prevents duplicate
 weight allocation, snapshots the applied rule, calculates processing, resting,
 and shipping timestamps, and exposes the next required check through read
-views. Once a sorting source is selected, the form prefills conditions from the
-month-and-variety master and fills any missing values from the latest batch for
-the same variety. When only one sorting source is available, it and its
-available weight are selected automatically.
+views. The form initially selects the sorting source with the nearest ethylene
+deadline, prefills its available weight, then fills conditions from the
+month-and-variety master and the latest batch for the same variety. Staff can
+still select another source and edit every prefilled value before confirming.
 
 ## Database overview
 
