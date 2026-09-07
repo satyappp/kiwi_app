@@ -62,6 +62,13 @@ exceptional batch. Add the farm's actual ripening locations to
 `ripening_locations`; after the first location is registered it becomes a
 reusable choice.
 
+## After `20260907193000_sync_variety_master.sql`
+
+Run it after the ripening migration. It aligns `varieties.legacy_code` with
+Google Sheets `品種マスタ / 品種マスタ_マスタ`, including backfilling the four
+varieties first introduced by the ripening master. Rows explicitly marked as
+temporary non-kiwi placeholders (`梨(仮)`, `ぶどう(仮)`) are not imported.
+
 For each batch, the database snapshots the selected rule, calculates the
 ethylene end, resting start, and shippable timestamps, and exposes the current
 phase and next check through `ripening_batches_expanded`.
