@@ -72,7 +72,7 @@ export default async function DashboardHarvestPage() {
           <h2 className="font-bold text-kiwi-ink">収穫記録一覧</h2>
           <p className="mt-1 text-xs text-muted-foreground">列名を押すと並び替えできます・最大1,000件</p>
         </div>
-        <HarvestTable rows={rows} sortable pageSize={25} />
+        <HarvestTable rows={rows} sortable pageSize={25} showActions />
       </section>
     </div>
   );

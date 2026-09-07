@@ -6,7 +6,7 @@ import { harvestInputSchema } from "@/features/harvest/schema";
 import { createClient } from "@/lib/supabase/server";
 
 export type CreateHarvestResult =
-  | { ok: true; id: string }
+  | { ok: true; id: string; title: string }
   | { ok: false; fieldErrors: Record<string, string[]> }
   | { ok: false; formError: string };
 
@@ -49,7 +49,7 @@ export async function createHarvest(
   const { data, error } = await supabase
     .from("harvest_logs")
     .insert(row)
-    .select("id")
+    .select("id, title")
     .single();
 
   if (error || !data) {
@@ -68,5 +68,5 @@ export async function createHarvest(
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/harvest");
 
-  return { ok: true, id: data.id };
+  return { ok: true, id: data.id, title: data.title };
 }

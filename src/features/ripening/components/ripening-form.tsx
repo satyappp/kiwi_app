@@ -862,12 +862,12 @@ export function RipeningForm({
             </Button>
             {state?.ok && (
               <Button
-                render={<Link href={`/ripening/${state.id}/label?print=1`} target="_blank" />}
+                render={<Link href={`/ripening/${state.id}/label`} target="_blank" />}
                 onClick={() => setIsCompleteOpen(false)}
                 className="h-12 rounded-xl font-bold"
               >
                 <Printer className="size-4" />
-                ラベルを印刷
+                印刷
               </Button>
             )}
           </div>

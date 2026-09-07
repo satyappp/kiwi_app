@@ -9,6 +9,7 @@ import type {
 } from "@/features/ripening/schema";
 import { requireDbValue } from "@/lib/supabase/guards";
 import { createClient } from "@/lib/supabase/server";
+import { z } from "zod";
 
 function toNumber(value: number | string | null) {
   const number = Number(value ?? 0);
@@ -42,6 +43,8 @@ type RawBreakdown = {
   size_code?: unknown;
   weight_kg?: unknown;
 };
+
+const ripeningIdSchema = z.string().uuid();
 
 function parseBreakdown(value: unknown): RawBreakdown[] {
   if (!Array.isArray(value)) return [];
@@ -304,6 +307,8 @@ export async function listRipeningHistory(
 export async function getRipeningLabel(
   id: string,
 ): Promise<RipeningLabelData | null> {
+  if (!ripeningIdSchema.safeParse(id).success) return null;
+
   const supabase = await createClient();
   const { data: batch, error } = await supabase
     .from("ripening_batches_expanded")

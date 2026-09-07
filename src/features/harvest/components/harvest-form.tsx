@@ -1,8 +1,17 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { Printer, RotateCcw } from "lucide-react";
+import Link from "next/link";
+import { useActionState, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -74,10 +83,8 @@ export function HarvestForm({
   defaultSortingDeadline,
 }: HarvestFormProps) {
   const { plots, treeBlocks, varieties } = options;
-  const [state, formAction, isPending] = useActionState(
-    createHarvest,
-    initialState,
-  );
+  const formRef = useRef<HTMLFormElement>(null);
+  const [isCompleteOpen, setIsCompleteOpen] = useState(false);
   const [workDate, setWorkDate] = useState(defaultDate);
   const [workTime, setWorkTime] = useState(defaultTime);
   const [sortingDeadline, setSortingDeadline] = useState(
@@ -85,6 +92,24 @@ export function HarvestForm({
   );
   const [plotId, setPlotId] = useState("");
   const [treeBlockId, setTreeBlockId] = useState("");
+
+  async function submitHarvest(
+    previousState: CreateHarvestResult | null,
+    formData: FormData,
+  ) {
+    const result = await createHarvest(previousState, formData);
+    if (result.ok) {
+      formRef.current?.reset();
+      setPlotId("");
+      setTreeBlockId("");
+      setIsCompleteOpen(true);
+    }
+    return result;
+  }
+  const [state, formAction, isPending] = useActionState(
+    submitHarvest,
+    initialState,
+  );
   const treeBlocksForPlot = treeBlocks.filter((tb) => tb.plotId === plotId);
   const fieldErrors =
     state && !state.ok && "fieldErrors" in state
@@ -102,16 +127,10 @@ export function HarvestForm({
   }
 
   return (
-    <form action={formAction} className="space-y-4" noValidate>
+    <form ref={formRef} action={formAction} className="space-y-4" noValidate>
       {!currentStaff && (
         <p role="alert" className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
           担当者を確認できません。ログインし直してください。
-        </p>
-      )}
-
-      {state?.ok && (
-        <p role="status" className="rounded-xl bg-primary/10 px-4 py-3 text-sm font-medium text-kiwi-ink">
-          収穫を登録しました。
         </p>
       )}
 
@@ -245,6 +264,47 @@ export function HarvestForm({
       >
         {isPending ? "登録中…" : "登録する"}
       </Button>
+
+      <Dialog open={isCompleteOpen} onOpenChange={setIsCompleteOpen}>
+        <DialogContent showCloseButton={false} className="gap-5 rounded-3xl p-6 sm:max-w-md">
+          <DialogHeader className="items-center text-center">
+            <div className="mb-1 grid size-14 place-items-center rounded-full bg-primary/12 text-2xl text-primary">
+              ✓
+            </div>
+            <DialogTitle className="text-xl font-bold text-kiwi-ink">
+              収穫を登録しました
+            </DialogTitle>
+            <DialogDescription>
+              {state?.ok ? state.title : "収穫記録"}の次の操作を選んでください。
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsCompleteOpen(false);
+                requestAnimationFrame(() => document.getElementById("plot")?.focus());
+              }}
+              className="h-12 rounded-xl bg-white font-bold"
+            >
+              <RotateCcw className="size-4" />
+              続けて入力
+            </Button>
+            {state?.ok && (
+              <Button
+                render={<Link href={`/harvest/${state.id}/label`} target="_blank" />}
+                onClick={() => setIsCompleteOpen(false)}
+                className="h-12 rounded-xl font-bold"
+              >
+                <Printer className="size-4" />
+                印刷
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </form>
   );
 }

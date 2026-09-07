@@ -78,7 +78,7 @@ export function RipeningHistoryTable({ rows }: { rows: RipeningHistoryRow[] }) {
                   詳細
                 </Link>
                 <Link
-                  href={`/ripening/${row.id}/label?print=1`}
+                  href={`/ripening/${row.id}/label`}
                   target="_blank"
                   className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary px-2.5 text-xs font-bold text-primary-foreground hover:bg-primary/80"
                 >

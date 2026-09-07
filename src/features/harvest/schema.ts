@@ -85,6 +85,23 @@ export type HarvestLogRow = {
   status: HarvestStatus;
 };
 
+/** Complete database-backed data printed on one harvest container label. */
+export type HarvestLabelData = {
+  id: string;
+  title: string;
+  inputTs: string;
+  workDate: string;
+  workTime: string | null;
+  staffName: string;
+  plotName: string;
+  treeBlockName: string | null;
+  varietyName: string;
+  branch: string | null;
+  sortingDeadline: string;
+  weightKg: number;
+  notes: string | null;
+};
+
 export type HarvestChartPoint = {
   label: string;
   weightKg: number;
