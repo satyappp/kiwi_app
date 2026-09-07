@@ -1,11 +1,15 @@
 import type {
   RipeningFormOptions,
+  RipeningHistoryRow,
+  RipeningLabelBreakdown,
+  RipeningLabelData,
   RipeningPhase,
   RipeningStatus,
   StaffOption,
 } from "@/features/ripening/schema";
 import { requireDbValue } from "@/lib/supabase/guards";
 import { createClient } from "@/lib/supabase/server";
+import { z } from "zod";
 
 function toNumber(value: number | string | null) {
   const number = Number(value ?? 0);
@@ -30,6 +34,24 @@ function toPhase(value: string): RipeningPhase {
     return value;
   }
   return "scheduled";
+}
+
+type RawBreakdown = {
+  sorting_log_id?: unknown;
+  sorting_title?: unknown;
+  harvest_title?: unknown;
+  size_code?: unknown;
+  weight_kg?: unknown;
+};
+
+const ripeningIdSchema = z.string().uuid();
+
+function parseBreakdown(value: unknown): RawBreakdown[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (item): item is RawBreakdown =>
+      typeof item === "object" && item !== null && !Array.isArray(item),
+  );
 }
 
 /** All live database choices needed by the ripening start form. */
@@ -227,4 +249,192 @@ export async function listActiveRipeningStatuses(): Promise<RipeningStatus[]> {
     isOverdue: requireDbValue(row.is_overdue, "ripening_batches_expanded.is_overdue"),
     isDueSoon: requireDbValue(row.is_due_soon, "ripening_batches_expanded.is_due_soon"),
   }));
+}
+
+/** Historical ripening records for the management list. */
+export async function listRipeningHistory(
+  limit = 500,
+): Promise<RipeningHistoryRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("ripening_batches_expanded")
+    .select(
+      "work_record_id, ripening_no, ripening_title, ripening_location, variety_name, weight_kg, started_at, shippable_at, phase",
+    )
+    .order("started_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    throw new Error(`追熟履歴の取得に失敗しました (${error.code})`);
+  }
+
+  return (data ?? []).map((row) => ({
+    id: requireDbValue(
+      row.work_record_id,
+      "ripening_batches_expanded.work_record_id",
+    ),
+    ripeningNo: Number(
+      requireDbValue(row.ripening_no, "ripening_batches_expanded.ripening_no"),
+    ),
+    title: requireDbValue(
+      row.ripening_title,
+      "ripening_batches_expanded.ripening_title",
+    ),
+    locationName: requireDbValue(
+      row.ripening_location,
+      "ripening_batches_expanded.ripening_location",
+    ),
+    varietyName: requireDbValue(
+      row.variety_name,
+      "ripening_batches_expanded.variety_name",
+    ),
+    weightKg: toNumber(row.weight_kg),
+    startedAt: requireDbValue(
+      row.started_at,
+      "ripening_batches_expanded.started_at",
+    ),
+    shippableAt: requireDbValue(
+      row.shippable_at,
+      "ripening_batches_expanded.shippable_at",
+    ),
+    phase: toPhase(
+      requireDbValue(row.phase, "ripening_batches_expanded.phase"),
+    ),
+  }));
+}
+
+/** One complete label, read through the signed-in user's RLS session. */
+export async function getRipeningLabel(
+  id: string,
+): Promise<RipeningLabelData | null> {
+  if (!ripeningIdSchema.safeParse(id).success) return null;
+
+  const supabase = await createClient();
+  const { data: batch, error } = await supabase
+    .from("ripening_batches_expanded")
+    .select(
+      "work_record_id, ripening_no, ripening_title, staff_name, ripening_location, variety_name, weight_kg, breakdown, started_at, ethylene_temperature_c, ethylene_started_at, ethylene_ended_at, resting_temperature_c, resting_started_at, shippable_at, notes",
+    )
+    .eq("work_record_id", id)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`追熟ラベルの取得に失敗しました (${error.code})`);
+  }
+  if (!batch) return null;
+
+  const rawBreakdown = parseBreakdown(batch.breakdown);
+  const sortingIds = rawBreakdown
+    .map((item) => item.sorting_log_id)
+    .filter((value): value is string => typeof value === "string");
+  const sourceById = new Map<
+    string,
+    { plotName: string; sizeCode: string; harvestTitle: string }
+  >();
+
+  if (sortingIds.length > 0) {
+    const { data: sources, error: sourceError } = await supabase
+      .from("sorting_ripening_status")
+      .select("sorting_log_id, plot_name, size_code, harvest_title")
+      .in("sorting_log_id", sortingIds);
+
+    if (sourceError) {
+      throw new Error(`追熟ラベル内訳の取得に失敗しました (${sourceError.code})`);
+    }
+
+    for (const source of sources ?? []) {
+      sourceById.set(
+        requireDbValue(
+          source.sorting_log_id,
+          "sorting_ripening_status.sorting_log_id",
+        ),
+        {
+          plotName: requireDbValue(
+            source.plot_name,
+            "sorting_ripening_status.plot_name",
+          ),
+          sizeCode: requireDbValue(
+            source.size_code,
+            "sorting_ripening_status.size_code",
+          ),
+          harvestTitle: requireDbValue(
+            source.harvest_title,
+            "sorting_ripening_status.harvest_title",
+          ),
+        },
+      );
+    }
+  }
+
+  const breakdown: RipeningLabelBreakdown[] = rawBreakdown.map((item) => {
+    const sortingLogId = String(item.sorting_log_id ?? "");
+    const source = sourceById.get(sortingLogId);
+    return {
+      sortingLogId,
+      sortingTitle: String(item.sorting_title ?? ""),
+      harvestTitle: source?.harvestTitle ?? String(item.harvest_title ?? ""),
+      plotName: source?.plotName ?? "",
+      sizeCode: source?.sizeCode ?? String(item.size_code ?? ""),
+      weightKg: toNumber(
+        typeof item.weight_kg === "number" || typeof item.weight_kg === "string"
+          ? item.weight_kg
+          : null,
+      ),
+    };
+  });
+  const plotNames = [...new Set(breakdown.map((item) => item.plotName).filter(Boolean))];
+  const sizeCodes = [...new Set(breakdown.map((item) => item.sizeCode).filter(Boolean))];
+
+  return {
+    id: requireDbValue(
+      batch.work_record_id,
+      "ripening_batches_expanded.work_record_id",
+    ),
+    ripeningNo: Number(
+      requireDbValue(batch.ripening_no, "ripening_batches_expanded.ripening_no"),
+    ),
+    title: requireDbValue(
+      batch.ripening_title,
+      "ripening_batches_expanded.ripening_title",
+    ),
+    staffName: requireDbValue(
+      batch.staff_name,
+      "ripening_batches_expanded.staff_name",
+    ),
+    locationName: requireDbValue(
+      batch.ripening_location,
+      "ripening_batches_expanded.ripening_location",
+    ),
+    varietyName: requireDbValue(
+      batch.variety_name,
+      "ripening_batches_expanded.variety_name",
+    ),
+    plotNames,
+    sizeCodes,
+    weightKg: toNumber(batch.weight_kg),
+    startedAt: requireDbValue(
+      batch.started_at,
+      "ripening_batches_expanded.started_at",
+    ),
+    ethyleneTemperatureC: toNullableNumber(batch.ethylene_temperature_c),
+    ethyleneStartedAt: requireDbValue(
+      batch.ethylene_started_at,
+      "ripening_batches_expanded.ethylene_started_at",
+    ),
+    ethyleneEndedAt: requireDbValue(
+      batch.ethylene_ended_at,
+      "ripening_batches_expanded.ethylene_ended_at",
+    ),
+    restingTemperatureC: toNullableNumber(batch.resting_temperature_c),
+    restingStartedAt: requireDbValue(
+      batch.resting_started_at,
+      "ripening_batches_expanded.resting_started_at",
+    ),
+    shippableAt: requireDbValue(
+      batch.shippable_at,
+      "ripening_batches_expanded.shippable_at",
+    ),
+    notes: batch.notes,
+    breakdown,
+  };
 }

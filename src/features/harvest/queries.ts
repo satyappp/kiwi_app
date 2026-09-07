@@ -1,6 +1,7 @@
 import type {
   HarvestDashboardData,
   HarvestFormOptions,
+  HarvestLabelData,
   HarvestLogRow,
   HarvestPeriod,
   HarvestStatus,
@@ -10,6 +11,7 @@ import type {
 import type { Database } from "@/lib/supabase/database.types";
 import { requireDbValue } from "@/lib/supabase/guards";
 import { createClient } from "@/lib/supabase/server";
+import { z } from "zod";
 
 /**
  * Data access for the harvest feature. Only this file (and actions.ts) may
@@ -78,6 +80,7 @@ type SortingStatusRow = Pick<
 
 const harvestListColumns =
   "work_record_id, title, work_date, work_time, variety_name, plot_name, tree_block_name, branch, weight_kg, sorting_deadline, staff_name, notes";
+const harvestIdSchema = z.string().uuid();
 
 function numberValue(value: number | string | null | undefined) {
   const parsed = Number(value ?? 0);
@@ -219,6 +222,61 @@ export async function listHarvestLogs(limit = 100): Promise<HarvestLogRow[]> {
   const statuses = statusResults.flatMap((result) => result.data ?? []);
 
   return mapHarvestRows(rows ?? [], statuses);
+}
+
+/** One complete harvest label, read through the signed-in user's RLS session. */
+export async function getHarvestLabel(
+  id: string,
+): Promise<HarvestLabelData | null> {
+  if (!harvestIdSchema.safeParse(id).success) return null;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("harvest_logs_expanded")
+    .select(
+      "work_record_id, title, input_ts, work_date, work_time, staff_name, plot_name, tree_block_name, variety_name, branch, sorting_deadline, weight_kg, notes",
+    )
+    .eq("work_record_id", id)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`収穫ラベルの取得に失敗しました (${error.code})`);
+  }
+  if (!data) return null;
+
+  return {
+    id: requireDbValue(
+      data.work_record_id,
+      "harvest_logs_expanded.work_record_id",
+    ),
+    title: requireDbValue(data.title, "harvest_logs_expanded.title"),
+    inputTs: requireDbValue(data.input_ts, "harvest_logs_expanded.input_ts"),
+    workDate: requireDbValue(
+      data.work_date,
+      "harvest_logs_expanded.work_date",
+    ),
+    workTime: data.work_time,
+    staffName: requireDbValue(
+      data.staff_name,
+      "harvest_logs_expanded.staff_name",
+    ),
+    plotName: requireDbValue(
+      data.plot_name,
+      "harvest_logs_expanded.plot_name",
+    ),
+    treeBlockName: data.tree_block_name,
+    varietyName: requireDbValue(
+      data.variety_name,
+      "harvest_logs_expanded.variety_name",
+    ),
+    branch: data.branch,
+    sortingDeadline: requireDbValue(
+      data.sorting_deadline,
+      "harvest_logs_expanded.sorting_deadline",
+    ),
+    weightKg: numberValue(data.weight_kg),
+    notes: data.notes,
+  };
 }
 
 /** Live summary used by the first, harvest-focused dashboard. */

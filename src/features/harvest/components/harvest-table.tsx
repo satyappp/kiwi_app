@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, ChevronsUpDown } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, ChevronsUpDown, Eye, Printer } from "lucide-react";
+import Link from "next/link";
 
 import { HarvestStatusBadge } from "@/features/harvest/components/harvest-status-badge";
 import type { HarvestLogRow } from "@/features/harvest/schema";
@@ -69,10 +70,12 @@ export function HarvestTable({
   rows,
   sortable = false,
   pageSize,
+  showActions = false,
 }: {
   rows: HarvestLogRow[];
   sortable?: boolean;
   pageSize?: number;
+  showActions?: boolean;
 }) {
   const [sortKey, setSortKey] = useState<SortKey>("workDate");
   const [direction, setDirection] = useState<"asc" | "desc">("desc");
@@ -126,6 +129,9 @@ export function HarvestTable({
             <TableHead className="text-muted-foreground">{sortable ? <SortHeader label="選果期限" sortKey="sortingDeadline" activeKey={sortKey} direction={direction} onSort={handleSort} /> : "選果期限"}</TableHead>
             <TableHead className="text-muted-foreground">{sortable ? <SortHeader label="担当者" sortKey="staffName" activeKey={sortKey} direction={direction} onSort={handleSort} /> : "担当者"}</TableHead>
             <TableHead className="pr-5 text-muted-foreground">状態</TableHead>
+            {showActions && (
+              <TableHead className="pr-5 text-right text-muted-foreground">操作</TableHead>
+            )}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -152,6 +158,27 @@ export function HarvestTable({
               <TableCell className="pr-5">
                 <HarvestStatusBadge status={row.status} />
               </TableCell>
+              {showActions && (
+                <TableCell className="pr-5">
+                  <div className="flex justify-end gap-2">
+                    <Link
+                      href={`/dashboard/harvest/${row.id}`}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-bold text-kiwi-ink hover:bg-muted"
+                    >
+                      <Eye className="size-3.5" />
+                      詳細
+                    </Link>
+                    <Link
+                      href={`/harvest/${row.id}/label`}
+                      target="_blank"
+                      className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary px-2.5 text-xs font-bold text-primary-foreground hover:bg-primary/80"
+                    >
+                      <Printer className="size-3.5" />
+                      印刷
+                    </Link>
+                  </div>
+                </TableCell>
+              )}
             </TableRow>
           ))}
         </TableBody>

@@ -1,0 +1,120 @@
+.label {
+  box-sizing: border-box;
+  width: 148mm;
+  height: 105mm;
+  padding: 4mm;
+  background: white;
+  color: #111;
+  font-family: "Noto Sans JP", sans-serif;
+  font-size: 9pt;
+  line-height: 1.15;
+}
+
+.table {
+  display: grid;
+  height: 100%;
+  grid-template-rows: 6.5mm 6.5mm 6.5mm 6.5mm 8.5mm 6.5mm 6.5mm 6.5mm 7.5mm 7.5mm 22mm 6mm;
+  border-top: 0.35mm solid #111;
+  border-left: 0.35mm solid #111;
+}
+
+.row {
+  display: grid;
+  min-height: 0;
+  grid-template-columns: 18mm minmax(0, 1fr);
+  border-right: 0.35mm solid #111;
+  border-bottom: 0.35mm solid #111;
+}
+
+.heading,
+.value {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  padding: 0.9mm 1.7mm;
+}
+
+.heading {
+  border-right: 0.35mm solid #111;
+  font-size: 8pt;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.value {
+  overflow: hidden;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.strong {
+  font-size: 12pt;
+  font-weight: 700;
+}
+
+.breakdownValue {
+  display: grid;
+  min-width: 0;
+  grid-template-rows: repeat(5, 1fr);
+  overflow: hidden;
+}
+
+.breakdownLine {
+  display: flex;
+  min-height: 0;
+  align-items: center;
+  overflow: hidden;
+  border-bottom: 0.25mm dotted #555;
+  padding: 0.5mm 1.7mm;
+  font-size: 8pt;
+  white-space: nowrap;
+}
+
+.breakdownLine:last-child {
+  border-bottom: 0;
+}
+
+@media screen {
+  .label {
+    box-shadow: 0 18px 55px -25px rgb(25 55 20 / 45%);
+  }
+}
+
+@media print {
+  .label {
+    width: 297mm;
+    height: 210mm;
+    padding: 8mm;
+    font-size: 14pt;
+    break-inside: avoid;
+    page-break-after: avoid;
+    page-break-inside: avoid;
+    box-shadow: none;
+  }
+
+  .table {
+    grid-template-rows: 13mm 13mm 13mm 13mm 17mm 13mm 13mm 13mm 15mm 15mm 44mm 12mm;
+  }
+
+  .row {
+    grid-template-columns: 36mm minmax(0, 1fr);
+  }
+
+  .heading,
+  .value {
+    padding: 1.8mm 3.4mm;
+  }
+
+  .heading,
+  .breakdownLine {
+    font-size: 13pt;
+  }
+
+  .strong {
+    font-size: 20pt;
+  }
+
+  .breakdownLine {
+    padding: 1mm 3.4mm;
+  }
+}

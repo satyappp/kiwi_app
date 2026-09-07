@@ -5,10 +5,12 @@ export { HarvestDataAnalytics } from "@/features/harvest/components/harvest-data
 export { HarvestTable } from "@/features/harvest/components/harvest-table";
 export {
   getHarvestDashboardData,
+  getHarvestLabel,
   listHarvestLogs,
 } from "@/features/harvest/queries";
 export type {
   HarvestDashboardData,
+  HarvestLabelData,
   HarvestLogRow,
   HarvestPeriod,
   HarvestStatus,
