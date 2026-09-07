@@ -21,7 +21,9 @@ import {
 } from "@/features/ripening/actions";
 import {
   ripeningInputSchema,
+  type RecentRipeningSetting,
   type RipeningFormOptions,
+  type RipeningRuleOption,
   type SortingRipeningOption,
   type StaffOption,
 } from "@/features/ripening/schema";
@@ -129,13 +131,83 @@ function sourceLabel(source: SortingRipeningOption) {
   return `${formatDate(source.sortingDate)}・${source.title}（残 ${formatWeight(source.availableWeightKg)} kg）`;
 }
 
+type DefaultSource = "master" | "master-and-recent" | "recent" | "none";
+
+function resolveRipeningDefaults(
+  source: SortingRipeningOption | undefined,
+  startDate: string,
+  rules: RipeningRuleOption[],
+  recentSettings: RecentRipeningSetting[],
+) {
+  const rule = source
+    ? rules.find(
+        (candidate) =>
+          candidate.varietyId === source.varietyId &&
+          candidate.startMonth === Number(startDate.slice(5, 7)),
+      )
+    : undefined;
+  const recentSetting = source
+    ? recentSettings.find(
+        (candidate) => candidate.varietyId === source.varietyId,
+      )
+    : undefined;
+  const candidates = [
+    [rule?.ethyleneTemperatureC, recentSetting?.ethyleneTemperatureC],
+    [rule?.ethyleneDurationHours, recentSetting?.ethyleneDurationHours],
+    [rule?.restingTemperatureC, recentSetting?.restingTemperatureC],
+    [rule?.restingDurationHours, recentSetting?.restingDurationHours],
+  ] as const;
+  const hasMasterValue = candidates.some(([master]) => master != null);
+  const hasCompleteMaster = candidates.every(([master]) => master != null);
+  const usesRecentValue = candidates.some(
+    ([master, recent]) => master == null && recent != null,
+  );
+  const sourceType: DefaultSource = hasMasterValue
+    ? usesRecentValue
+      ? "master-and-recent"
+      : "master"
+    : usesRecentValue
+      ? "recent"
+      : "none";
+
+  return {
+    rule,
+    recentSetting,
+    sourceType,
+    hasCompleteMaster,
+    ethyleneTemperatureC:
+      rule?.ethyleneTemperatureC ?? recentSetting?.ethyleneTemperatureC ?? null,
+    ethyleneDurationHours:
+      rule?.ethyleneDurationHours ?? recentSetting?.ethyleneDurationHours ?? null,
+    restingTemperatureC:
+      rule?.restingTemperatureC ?? recentSetting?.restingTemperatureC ?? null,
+    restingDurationHours:
+      rule?.restingDurationHours ?? recentSetting?.restingDurationHours ?? null,
+  };
+}
+
+function defaultNotice(source: DefaultSource, hasCompleteMaster: boolean) {
+  if (source === "master") {
+    return hasCompleteMaster
+      ? "追熟マスタの値を入力欄へ反映しました。必要に応じて変更できます。"
+      : "追熟マスタの設定済み項目を反映しました。不足項目を入力すると標準値として保存します。";
+  }
+  if (source === "master-and-recent") {
+    return "追熟マスタの未設定項目を、この品種の直近実績で補いました。";
+  }
+  if (source === "recent") {
+    return "追熟マスタが未設定のため、この品種の直近実績を反映しました。";
+  }
+  return "標準条件と直近実績がありません。今回使用する条件を入力してください。";
+}
+
 export function RipeningForm({
   currentStaff,
   options,
   defaultDate,
   defaultTime,
 }: RipeningFormProps) {
-  const { locations, rules, sortingSources } = options;
+  const { locations, rules, recentSettings, sortingSources } = options;
   const formRef = useRef<HTMLFormElement>(null);
   const nextAllocationKey = useRef(2);
   const isSubmissionConfirmed = useRef(false);
@@ -143,7 +215,11 @@ export function RipeningForm({
   const [startDate, setStartDate] = useState(defaultDate);
   const [startTime, setStartTime] = useState(defaultTime);
   const [locationChoice, setLocationChoice] = useState(
-    locations.length === 0 ? NEW_LOCATION : "",
+    locations.length === 0
+      ? NEW_LOCATION
+      : locations.length === 1
+        ? locations[0].id
+        : "",
   );
   const [newLocationName, setNewLocationName] = useState("");
   const [allocations, setAllocations] = useState<AllocationDraft[]>([
@@ -154,6 +230,7 @@ export function RipeningForm({
   const [restingTemperatureC, setRestingTemperatureC] = useState("");
   const [restingDurationHours, setRestingDurationHours] = useState("");
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [saveAsStandard, setSaveAsStandard] = useState(true);
   const [notes, setNotes] = useState("");
 
   async function submitRipening(
@@ -175,6 +252,7 @@ export function RipeningForm({
       setRestingTemperatureC("");
       setRestingDurationHours("");
       setNotificationsEnabled(true);
+      setSaveAsStandard(true);
       setNewLocationName("");
       setNotes("");
     }
@@ -193,13 +271,12 @@ export function RipeningForm({
   const firstSource = sortingSources.find(
     (source) => source.id === allocations[0]?.sortingLogId,
   );
-  const selectedRule = firstSource
-    ? rules.find(
-        (rule) =>
-          rule.varietyId === firstSource.varietyId &&
-          rule.startMonth === Number(startDate.slice(5, 7)),
-      )
-    : undefined;
+  const selectedDefaults = resolveRipeningDefaults(
+    firstSource,
+    startDate,
+    rules,
+    recentSettings,
+  );
   const selectedSourceIds = new Set(
     allocations.map((allocation) => allocation.sortingLogId).filter(Boolean),
   );
@@ -221,25 +298,25 @@ export function RipeningForm({
         !selectedSourceIds.has(source.id),
     );
 
-  function applyRule(sourceId: string, date: string) {
+  function applyDefaults(sourceId: string, date: string) {
     const source = sortingSources.find((candidate) => candidate.id === sourceId);
-    const rule = source
-      ? rules.find(
-          (candidate) =>
-            candidate.varietyId === source.varietyId &&
-            candidate.startMonth === Number(date.slice(5, 7)),
-        )
-      : undefined;
+    const defaults = resolveRipeningDefaults(
+      source,
+      date,
+      rules,
+      recentSettings,
+    );
 
-    setEthyleneTemperatureC(rule?.ethyleneTemperatureC?.toString() ?? "");
-    setEthyleneProcessingHours(rule?.ethyleneDurationHours?.toString() ?? "");
-    setRestingTemperatureC(rule?.restingTemperatureC?.toString() ?? "");
-    setRestingDurationHours(rule?.restingDurationHours?.toString() ?? "");
+    setEthyleneTemperatureC(defaults.ethyleneTemperatureC?.toString() ?? "");
+    setEthyleneProcessingHours(defaults.ethyleneDurationHours?.toString() ?? "");
+    setRestingTemperatureC(defaults.restingTemperatureC?.toString() ?? "");
+    setRestingDurationHours(defaults.restingDurationHours?.toString() ?? "");
+    setSaveAsStandard(!defaults.hasCompleteMaster);
   }
 
   function handleStartDateChange(nextDate: string) {
     setStartDate(nextDate);
-    applyRule(allocations[0]?.sortingLogId ?? "", nextDate);
+    applyDefaults(allocations[0]?.sortingLogId ?? "", nextDate);
   }
 
   function handleSourceChange(index: number, sortingLogId: string) {
@@ -256,7 +333,7 @@ export function RipeningForm({
       );
       return index === 0 ? [next[0]] : next;
     });
-    if (index === 0) applyRule(sortingLogId, startDate);
+    if (index === 0) applyDefaults(sortingLogId, startDate);
   }
 
   function handleWeightChange(index: number, weightKg: string) {
@@ -311,6 +388,7 @@ export function RipeningForm({
       restingTemperatureC,
       restingDurationHours,
       notificationsEnabled,
+      saveAsStandard,
       notes,
       items: allocations.map((allocation) => ({
         sortingLogId: allocation.sortingLogId,
@@ -354,6 +432,9 @@ export function RipeningForm({
           <p className="font-bold">{state.title}を登録しました。</p>
           <p>エチレン終了：{formatDateTime(new Date(state.ethyleneEndedAt))}</p>
           <p>出荷可能：{formatDateTime(new Date(state.shippableAt))}</p>
+          {state.standardSaveWarning && (
+            <p className="text-destructive">{state.standardSaveWarning}</p>
+          )}
         </div>
       )}
 
@@ -518,20 +599,21 @@ export function RipeningForm({
       </fieldset>
 
       {firstSource && (
-        <div className={`rounded-xl px-4 py-3 text-sm ${selectedRule?.isScheduleConfigured ? "bg-primary/10 text-kiwi-ink" : "bg-kiwi-amber/25 text-kiwi-brown"}`}>
+        <div className={`rounded-xl px-4 py-3 text-sm ${selectedDefaults.sourceType === "none" ? "bg-kiwi-amber/25 text-kiwi-brown" : "bg-primary/10 text-kiwi-ink"}`}>
           <p className="font-bold">
             {startDate.slice(5, 7).replace(/^0/, "")}月・{firstSource.varietyName}の標準条件
           </p>
           <p className="mt-0.5 text-xs leading-5">
-            {selectedRule?.isScheduleConfigured
-              ? "追熟マスタの値を入力欄へ反映しました。必要に応じて変更できます。"
-              : "標準時間が未設定です。今回使用する条件を入力してください。"}
+            {defaultNotice(
+              selectedDefaults.sourceType,
+              selectedDefaults.hasCompleteMaster,
+            )}
           </p>
         </div>
       )}
 
       <div className="grid grid-cols-2 gap-3">
-        <Field label="エチレン温度" htmlFor="ethylene-temperature" optional error={fieldErrors?.ethyleneTemperatureC?.[0]}>
+        <Field label="エチレン温度" htmlFor="ethylene-temperature" optional={!saveAsStandard} error={fieldErrors?.ethyleneTemperatureC?.[0]}>
           <div className="relative">
             <Input
               id="ethylene-temperature"
@@ -540,6 +622,7 @@ export function RipeningForm({
               step="0.1"
               value={ethyleneTemperatureC}
               onChange={(event) => setEthyleneTemperatureC(event.target.value)}
+              required={saveAsStandard}
               className={`${inputClass} pr-10`}
             />
             <span className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-sm text-muted-foreground">℃</span>
@@ -561,7 +644,7 @@ export function RipeningForm({
             <span className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-sm text-muted-foreground">時間</span>
           </div>
         </Field>
-        <Field label="寝かせ温度" htmlFor="resting-temperature" optional error={fieldErrors?.restingTemperatureC?.[0]}>
+        <Field label="寝かせ温度" htmlFor="resting-temperature" optional={!saveAsStandard} error={fieldErrors?.restingTemperatureC?.[0]}>
           <div className="relative">
             <Input
               id="resting-temperature"
@@ -570,6 +653,7 @@ export function RipeningForm({
               step="0.1"
               value={restingTemperatureC}
               onChange={(event) => setRestingTemperatureC(event.target.value)}
+              required={saveAsStandard}
               className={`${inputClass} pr-10`}
             />
             <span className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-sm text-muted-foreground">℃</span>
@@ -608,6 +692,26 @@ export function RipeningForm({
           </div>
         </section>
       )}
+
+      <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 shadow-sm">
+        <input
+          type="checkbox"
+          name="saveAsStandard"
+          checked={saveAsStandard}
+          onChange={(event) => setSaveAsStandard(event.target.checked)}
+          className="size-5 rounded border-input accent-primary"
+        />
+        <span>
+          <span className="block text-sm font-bold text-kiwi-ink">
+            今回の条件を標準値として保存
+          </span>
+          <span className="mt-0.5 block text-xs text-muted-foreground">
+            {firstSource
+              ? `${startDate.slice(5, 7).replace(/^0/, "")}月・${firstSource.varietyName}の次回入力に使用します`
+              : "月と品種ごとの次回入力に使用します"}
+          </span>
+        </span>
+      </label>
 
       <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-input bg-white/80 px-4 py-3 shadow-sm">
         <input
