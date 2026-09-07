@@ -31,7 +31,7 @@ export const dashboardNavigation: NavigationSection[] = [
       { label: "ダッシュボード", href: "/dashboard", icon: LayoutDashboard },
       { label: "収穫データ", href: "/dashboard/harvest", icon: Sprout },
       { label: "選果管理", icon: ClipboardList, isPending: true },
-      { label: "追熟管理", icon: Timer, isPending: true },
+      { label: "追熟管理", href: "/dashboard/ripening", icon: Timer },
       { label: "在庫確認", icon: Snowflake, isPending: true },
       { label: "出荷管理", icon: Truck, isPending: true },
     ],

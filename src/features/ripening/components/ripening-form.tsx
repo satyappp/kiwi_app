@@ -1,6 +1,7 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Printer, RotateCcw, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useActionState, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -140,6 +141,7 @@ export function RipeningForm({
   const nextAllocationKey = useRef(2);
   const isSubmissionConfirmed = useRef(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isCompleteOpen, setIsCompleteOpen] = useState(false);
   const [startDate, setStartDate] = useState(defaultDate);
   const [startTime, setStartTime] = useState(defaultTime);
   const [locationChoice, setLocationChoice] = useState(
@@ -163,6 +165,9 @@ export function RipeningForm({
     const result = await startRipening(previousState, formData);
     if (result.ok) {
       formRef.current?.reset();
+      setStartDate(defaultDate);
+      setStartTime(defaultTime);
+      setLocationChoice(locations.length === 0 ? NEW_LOCATION : "");
       setAllocations([
         {
           key: nextAllocationKey.current++,
@@ -177,6 +182,7 @@ export function RipeningForm({
       setNotificationsEnabled(true);
       setNewLocationName("");
       setNotes("");
+      setIsCompleteOpen(true);
     }
     return result;
   }
@@ -347,14 +353,6 @@ export function RipeningForm({
         <p role="status" className="rounded-xl bg-kiwi-amber/25 px-4 py-3 text-sm text-kiwi-ink">
           追熟へ使用できる選果データがありません。先に選果を登録してください。
         </p>
-      )}
-
-      {state?.ok && (
-        <div role="status" className="space-y-1 rounded-xl bg-primary/10 px-4 py-3 text-sm text-kiwi-ink">
-          <p className="font-bold">{state.title}を登録しました。</p>
-          <p>エチレン終了：{formatDateTime(new Date(state.ethyleneEndedAt))}</p>
-          <p>出荷可能：{formatDateTime(new Date(state.shippableAt))}</p>
-        </div>
       )}
 
       {state && !state.ok && "formError" in state && (
@@ -682,6 +680,54 @@ export function RipeningForm({
             <Button type="button" onClick={confirmSubmission} className="h-11 rounded-xl font-bold">
               開始する
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isCompleteOpen} onOpenChange={setIsCompleteOpen}>
+        <DialogContent showCloseButton={false} className="gap-5 rounded-3xl p-6 sm:max-w-md">
+          <DialogHeader className="items-center text-center">
+            <div className="mb-1 grid size-14 place-items-center rounded-full bg-primary/12 text-2xl text-primary">
+              ✓
+            </div>
+            <DialogTitle className="text-xl font-bold text-kiwi-ink">
+              追熟を登録しました
+            </DialogTitle>
+            <DialogDescription>
+              {state?.ok ? state.title : "追熟記録"}の次の操作を選んでください。
+            </DialogDescription>
+          </DialogHeader>
+
+          {state?.ok && (
+            <div className="rounded-2xl bg-muted/45 px-4 py-3 text-sm text-kiwi-ink">
+              <p>エチレン終了：{formatDateTime(new Date(state.ethyleneEndedAt))}</p>
+              <p className="mt-1 font-bold">出荷可能：{formatDateTime(new Date(state.shippableAt))}</p>
+            </div>
+          )}
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsCompleteOpen(false);
+                requestAnimationFrame(() => document.getElementById("start-date")?.focus());
+              }}
+              className="h-12 rounded-xl bg-white font-bold"
+            >
+              <RotateCcw className="size-4" />
+              続けて入力
+            </Button>
+            {state?.ok && (
+              <Button
+                render={<Link href={`/ripening/${state.id}/label?print=1`} target="_blank" />}
+                onClick={() => setIsCompleteOpen(false)}
+                className="h-12 rounded-xl font-bold"
+              >
+                <Printer className="size-4" />
+                ラベルを印刷
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>

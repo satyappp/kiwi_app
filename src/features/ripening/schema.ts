@@ -157,3 +157,48 @@ export type RipeningStatus = {
   isOverdue: boolean;
   isDueSoon: boolean;
 };
+
+export type RipeningLabelBreakdown = {
+  sortingLogId: string;
+  sortingTitle: string;
+  harvestTitle: string;
+  plotName: string;
+  sizeCode: string;
+  weightKg: number;
+};
+
+/** Complete, display-ready data for one physical container label. */
+export type RipeningLabelData = {
+  id: string;
+  ripeningNo: number;
+  title: string;
+  staffName: string;
+  locationName: string;
+  varietyName: string;
+  plotNames: string[];
+  sizeCodes: string[];
+  weightKg: number;
+  startedAt: string;
+  ethyleneTemperatureC: number | null;
+  ethyleneStartedAt: string;
+  ethyleneEndedAt: string;
+  restingTemperatureC: number | null;
+  restingStartedAt: string;
+  shippableAt: string;
+  notes: string | null;
+  breakdown: RipeningLabelBreakdown[];
+};
+
+export type RipeningHistoryRow = Pick<
+  RipeningLabelData,
+  | "id"
+  | "ripeningNo"
+  | "title"
+  | "locationName"
+  | "varietyName"
+  | "weightKg"
+  | "startedAt"
+  | "shippableAt"
+> & {
+  phase: RipeningPhase;
+};
