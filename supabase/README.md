@@ -66,6 +66,15 @@ For each batch, the database snapshots the selected rule, calculates the
 ethylene end, resting start, and shippable timestamps, and exposes the current
 phase and next check through `ripening_batches_expanded`.
 
+## After `20260907120000_inventory_schema.sql`
+
+Run it after the ripening migration. Inventory is calculated from process
+records instead of copying totals into another stock table: sorting increases
+cold inventory, ripening allocation moves weight into ripening inventory, and
+completion moves it into ready-to-ship inventory. Reservations and shipments
+are persisted separately, with database checks preventing either from
+exceeding the available weight.
+
 ## Tables
 
 | table | maps to | notes |
@@ -81,6 +90,8 @@ phase and next check through `ripening_batches_expanded`.
 | `ripening_rules` | 追熟条件マスタ | month/variety rules imported from the reference sheet |
 | `ripening_batches` | 追熟ロット | one row per ripening run, including schedule and confirmations |
 | `ripening_batch_items` | 追熟内訳 | sorting-log allocations and weights for each ripening batch |
+| `inventory_reservations` | 予約 | ready-to-ship weight reserved for a customer |
+| `inventory_shipments` | 出荷実績 | shipped weight against a reservation |
 
 ### Harvest input defaults
 
@@ -103,3 +114,9 @@ UI field is blank, the insert mapping must omit the column; it must not send
 | `ripening_rules_expanded` | month/variety rules with variety names and configured-state flag |
 | `sorting_ripening_status` | sorted, allocated, and still-available weight per sorting log |
 | `ripening_batches_expanded` | batch summary, breakdown, current phase, next check, and warning state |
+
+## Inventory read views
+
+| view | purpose |
+|---|---|
+| `inventory_status` | cold, ripening, ready-to-ship, reserved, and shipped weights by variety and source |

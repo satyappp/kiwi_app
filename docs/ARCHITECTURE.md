@@ -63,9 +63,9 @@ src/
   proxy.ts                 session refresh (Next 16 "proxy", was "middleware")
 ```
 
-Current features: `auth`, `home`, `harvest`, `sorting`, `ripening`. The dashboard
+Current features: `auth`, `home`, `harvest`, `sorting`, `ripening`, `inventory`. The dashboard
 shell is live, with harvest as its first real data section. Planned (see task list):
-`cold-storage`, `inventory`, `shipments`, `orders`, `customers`,
+`cold-storage`, `shipments`, `orders`, `customers`,
 `tasks`, `dashboard`.
 
 ---
