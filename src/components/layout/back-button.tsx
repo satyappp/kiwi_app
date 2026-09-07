@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronLeft } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 type BackButtonProps = {
@@ -17,13 +18,19 @@ export function BackButton({
   className,
 }: BackButtonProps) {
   const router = useRouter();
+  const buttonClassName =
+    "grid size-10 place-items-center rounded-full text-kiwi-ink active:bg-black/5 " +
+    (className ?? "");
+
+  if (href) {
+    return (
+      <Link href={href} aria-label="ホームに戻る" className={buttonClassName}>
+        <ChevronLeft className="size-6" strokeWidth={2.4} />
+      </Link>
+    );
+  }
 
   function goBack() {
-    if (href) {
-      router.push(href);
-      return;
-    }
-
     if (window.history.length > 1) {
       router.back();
     } else {
@@ -36,10 +43,7 @@ export function BackButton({
       type="button"
       aria-label="戻る"
       onClick={goBack}
-      className={
-        "grid size-10 place-items-center rounded-full text-kiwi-ink active:bg-black/5 " +
-        (className ?? "")
-      }
+      className={buttonClassName}
     >
       <ChevronLeft className="size-6" strokeWidth={2.4} />
     </button>
