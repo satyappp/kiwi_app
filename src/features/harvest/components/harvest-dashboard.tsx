@@ -27,10 +27,10 @@ export function HarvestDashboard({ data, staffName }: { data: HarvestDashboardDa
   }).format(new Date());
 
   const summaryCards = [
-    { label: `${data.periodLabel}の収穫量`, value: data.totalWeightKg.toLocaleString("ja-JP", { maximumFractionDigits: 2 }), unit: "kg", detail: `${data.recordCount}件の収穫記録`, icon: Sprout, tone: "bg-amber-100 text-amber-700", isPending: false },
-    { label: "未選果量", value: data.unsortedWeightKg.toLocaleString("ja-JP", { maximumFractionDigits: 2 }), unit: "kg", detail: data.attentionCount > 0 ? `期限確認 ${data.attentionCount}件` : "期限内です", icon: Scale, tone: "bg-kiwi-pale/60 text-kiwi-ink", isPending: false },
-    { label: "追熟中", value: "—", unit: "kg", detail: "追熟機能から連携予定", icon: Timer, tone: "bg-violet-50 text-violet-700", isPending: true },
-    { label: "出荷可能", value: "—", unit: "kg", detail: "在庫機能から連携予定", icon: Truck, tone: "bg-sky-50 text-sky-700", isPending: true },
+    { label: `${data.periodLabel}の収穫量`, value: data.totalWeightKg.toLocaleString("ja-JP", { maximumFractionDigits: 2 }), unit: "kg", detail: `${data.recordCount}件の収穫記録`, icon: Sprout, tone: "bg-amber-100 text-amber-700", href: "/harvest/new" },
+    { label: "未選果量", value: data.unsortedWeightKg.toLocaleString("ja-JP", { maximumFractionDigits: 2 }), unit: "kg", detail: data.attentionCount > 0 ? `期限確認 ${data.attentionCount}件` : "期限内です", icon: Scale, tone: "bg-kiwi-pale/60 text-kiwi-ink", href: "/sorting/new" },
+    { label: "追熟中", value: "—", unit: "kg", detail: "タップして追熟を入力", icon: Timer, tone: "bg-violet-50 text-violet-700", href: "/ripening/new" },
+    { label: "出荷可能", value: "—", unit: "kg", detail: "タップして出荷を入力", icon: Truck, tone: "bg-sky-50 text-sky-700", href: "/shipping/new" },
   ];
 
   return (
@@ -55,14 +55,15 @@ export function HarvestDashboard({ data, staffName }: { data: HarvestDashboardDa
           <p className="mt-1 text-sm text-amber-900/65">
             {data.nextAction
               ? `${data.nextAction.varietyName}（${data.nextAction.plotName}）の選果期限は ${data.nextAction.sortingDeadline} です。`
-              : "現在、選果期限が近い収穫記録はありません。"}
+              : "【サンプル】ヘイワード（A区画）の選果内容を入力してください。"}
           </p>
         </div>
-        {data.nextAction && (
-          <Link href="/dashboard/harvest" className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-amber-800 sm:mt-0">
-            確認する <ArrowRight className="size-4" />
-          </Link>
-        )}
+        <Link
+          href="/sorting/new?returnTo=/dashboard"
+          className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-amber-800 sm:mt-0"
+        >
+          入力画面を開く <ArrowRight className="size-4" />
+        </Link>
       </section>
 
       <section>
@@ -81,7 +82,7 @@ export function HarvestDashboard({ data, staffName }: { data: HarvestDashboardDa
         </div>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {summaryCards.map((card) => (
-            <article key={card.label} className="rounded-2xl border border-white/80 bg-white/88 p-5 shadow-[0_14px_34px_-22px_rgba(55,75,35,.3)]">
+            <Link key={card.label} href={card.href} className="rounded-2xl border border-white/80 bg-white/88 p-5 shadow-[0_14px_34px_-22px_rgba(55,75,35,.3)] transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
               <div className="flex items-start justify-between gap-3">
                 <p className="text-sm font-medium text-muted-foreground">{card.label}</p>
                 <span className={cn("grid size-10 place-items-center rounded-xl", card.tone)}><card.icon className="size-5" /></span>
@@ -91,9 +92,9 @@ export function HarvestDashboard({ data, staffName }: { data: HarvestDashboardDa
               </p>
               <div className="mt-3 flex items-center justify-between gap-2 text-xs text-muted-foreground">
                 <span>{card.detail}</span>
-                {card.isPending && <span className="rounded-full bg-kiwi-tan/60 px-2 py-0.5 text-[10px] font-bold text-kiwi-brown">準備中</span>}
+                <ArrowRight className="size-4 text-kiwi" />
               </div>
-            </article>
+            </Link>
           ))}
         </div>
       </section>
@@ -113,24 +114,22 @@ export function HarvestDashboard({ data, staffName }: { data: HarvestDashboardDa
           </div>
           <div className="mt-6 space-y-5">
             {[
-              { label: "未選果", value: data.unsortedWeightKg, max: data.totalWeightKg, color: "bg-amber-400", pending: false },
-              { label: "選果済み（期間内）", value: data.sortedWeightKg, max: data.totalWeightKg, color: "bg-kiwi", pending: false },
-              { label: "追熟中", value: 0, max: 1, color: "bg-violet-300", pending: true },
-              { label: "出荷可能在庫", value: 0, max: 1, color: "bg-sky-300", pending: true },
+              { label: "未選果", value: data.unsortedWeightKg, max: data.totalWeightKg, color: "bg-amber-400", href: "/sorting/new" },
+              { label: "選果済み（期間内）", value: data.sortedWeightKg, max: data.totalWeightKg, color: "bg-kiwi", href: "/ripening/new" },
+              { label: "追熟中", value: 0, max: 1, color: "bg-violet-300", href: "/ripening/new" },
+              { label: "出荷可能在庫", value: 0, max: 1, color: "bg-sky-300", href: "/shipping/new" },
             ].map((stage) => (
-              <div key={stage.label}>
+              <Link key={stage.label} href={stage.href} className="block rounded-lg p-1 transition hover:bg-kiwi-pale/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
                 <div className="mb-2 flex items-center justify-between text-sm">
                   <span className="font-medium text-muted-foreground">{stage.label}</span>
-                  {stage.pending ? (
-                    <span className="rounded-full bg-kiwi-tan/60 px-2 py-0.5 text-[10px] font-bold text-kiwi-brown">準備中</span>
-                  ) : (
+                  {stage.value > 0 ? (
                     <strong className="tabular-nums text-kiwi-ink">{stage.value.toLocaleString("ja-JP", { maximumFractionDigits: 2 })} kg</strong>
-                  )}
+                  ) : <span className="inline-flex items-center gap-1 text-xs font-bold text-kiwi">入力する <ArrowRight className="size-3.5" /></span>}
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-kiwi-pale/25">
-                  <div className={`h-full rounded-full ${stage.color}`} style={{ width: stage.pending ? "0%" : `${Math.min(100, stage.max > 0 ? (stage.value / stage.max) * 100 : 0)}%` }} />
+                  <div className={`h-full rounded-full ${stage.color}`} style={{ width: `${Math.min(100, stage.max > 0 ? (stage.value / stage.max) * 100 : 0)}%` }} />
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </article>

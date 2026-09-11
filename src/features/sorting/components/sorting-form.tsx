@@ -29,6 +29,7 @@ type SortingFormProps = {
   currentStaff: StaffOption | null;
   options: SortingFormOptions;
   defaultSortingDate: string;
+  returnTo?: "/dashboard";
 };
 
 const inputClass =
@@ -89,6 +90,7 @@ export function SortingForm({
   currentStaff,
   options,
   defaultSortingDate,
+  returnTo,
 }: SortingFormProps) {
   const { harvests, sizeStandards } = options;
   const formRef = useRef<HTMLFormElement>(null);
@@ -166,6 +168,7 @@ export function SortingForm({
       className="space-y-4"
       noValidate
     >
+      {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
       {!currentStaff && (
         <p
           role="alert"
@@ -215,7 +218,7 @@ export function SortingForm({
       <Field
         label="選果日"
         htmlFor="sorting-date"
-        error={fieldErrors?.sortingDate?.[0]}
+        error={sortingDate ? undefined : fieldErrors?.sortingDate?.[0]}
       >
         <Input
           id="sorting-date"
@@ -232,7 +235,7 @@ export function SortingForm({
       <Field
         label="元の収穫"
         htmlFor="harvest-log"
-        error={fieldErrors?.harvestLogId?.[0]}
+        error={harvestLogId ? undefined : fieldErrors?.harvestLogId?.[0]}
       >
         <NativeSelect
           id="harvest-log"
@@ -314,7 +317,7 @@ export function SortingForm({
       <Field
         label="サイズ"
         htmlFor="size-standard"
-        error={fieldErrors?.sizeStandardId?.[0]}
+        error={sizeStandardId ? undefined : fieldErrors?.sizeStandardId?.[0]}
       >
         <NativeSelect
           id="size-standard"

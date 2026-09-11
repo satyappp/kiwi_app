@@ -1,5 +1,12 @@
 import { z } from "zod";
 
+function requiredText(message: string) {
+  return z.preprocess(
+    (value) => (value === undefined || value === null ? "" : value),
+    z.string().min(1, message),
+  );
+}
+
 /**
  * Domain schema for one sorting entry (選果入力).
  *
@@ -15,9 +22,9 @@ import { z } from "zod";
  * This schema is the single source of truth for both the form and server action.
  */
 export const sortingInputSchema = z.object({
-  sortingDate: z.string().min(1, "選果日を入力してください"), // 選果日
-  harvestLogId: z.string().min(1, "元の収穫を選択してください"), // 収穫ログID
-  sizeStandardId: z.string().min(1, "サイズを選択してください"), // サイズ規格ID
+  sortingDate: requiredText("選果日を入力してください"), // 選果日
+  harvestLogId: requiredText("元の収穫を選択してください"), // 収穫ログID
+  sizeStandardId: requiredText("サイズを選択してください"), // サイズ規格ID
   weightKg: z.preprocess(
     (value) => (value === "" ? undefined : value),
     z.coerce // 選果量（kg）
