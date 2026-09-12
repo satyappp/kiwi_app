@@ -82,10 +82,10 @@
 
 @media print {
   .label {
-    width: 297mm;
-    height: 210mm;
-    padding: 8mm;
-    font-size: 14pt;
+    width: 210mm;
+    height: 148mm;
+    padding: 6mm;
+    font-size: 10pt;
     break-inside: avoid;
     page-break-after: avoid;
     page-break-inside: avoid;
@@ -93,28 +93,28 @@
   }
 
   .table {
-    grid-template-rows: 13mm 13mm 13mm 13mm 17mm 13mm 13mm 13mm 15mm 15mm 44mm 12mm;
+    grid-template-rows: 9mm 9mm 9mm 9mm 12mm 9mm 9mm 9mm 10.5mm 10.5mm 31mm 9mm;
   }
 
   .row {
-    grid-template-columns: 36mm minmax(0, 1fr);
+    grid-template-columns: 25mm minmax(0, 1fr);
   }
 
   .heading,
   .value {
-    padding: 1.8mm 3.4mm;
+    padding: 1.2mm 2.4mm;
   }
 
   .heading,
   .breakdownLine {
-    font-size: 13pt;
+    font-size: 9pt;
   }
 
   .strong {
-    font-size: 20pt;
+    font-size: 14pt;
   }
 
   .breakdownLine {
-    padding: 1mm 3.4mm;
+    padding: 0.7mm 2.4mm;
   }
 }

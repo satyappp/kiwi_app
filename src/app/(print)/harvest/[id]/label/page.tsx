@@ -19,19 +19,19 @@ export default async function HarvestLabelPage({
   if (!data) notFound();
 
   return (
-    <main className="min-h-dvh bg-[#eef3e9] px-4 py-6 print:h-[210mm] print:min-h-0 print:w-[297mm] print:overflow-hidden print:bg-white print:p-0 sm:py-10">
+    <main className="min-h-dvh bg-[#eef3e9] px-4 py-6 print:h-[148mm] print:min-h-0 print:w-[210mm] print:overflow-hidden print:bg-white print:p-0 sm:py-10">
       <style>{`
-        @page { size: A4 landscape; margin: 0; }
+        @page { size: A5 landscape; margin: 0; }
         @media print {
           html, body {
-            width: 297mm !important;
-            height: 210mm !important;
+            width: 210mm !important;
+            height: 148mm !important;
             margin: 0 !important;
             overflow: hidden !important;
           }
         }
       `}</style>
-      <div className="print:hidden mx-auto mb-5 flex max-w-[297mm] items-center justify-between gap-4">
+      <div className="print:hidden mx-auto mb-5 flex max-w-[210mm] items-center justify-between gap-4">
         <div>
           <p className="text-xs font-bold tracking-[0.12em] text-kiwi">CONTAINER LABEL</p>
           <h1 className="mt-1 text-xl font-bold text-kiwi-ink">{data.title}</h1>
@@ -46,8 +46,8 @@ export default async function HarvestLabelPage({
       <div className="mt-6">
         <LabelActions pdfHref={`/api/harvest/${id}/label`} />
       </div>
-      <p className="print:hidden mx-auto mt-3 max-w-[297mm] text-center text-xs text-muted-foreground">
-        用紙はA4・横向き・倍率100%で印刷してください。
+      <p className="print:hidden mx-auto mt-3 max-w-[210mm] text-center text-xs text-muted-foreground">
+        用紙はA5・横向き・倍率100%で印刷してください。
       </p>
     </main>
   );
