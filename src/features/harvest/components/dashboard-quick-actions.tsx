@@ -25,10 +25,10 @@ const activeActions = [
   { label: "収穫登録", href: "/harvest/new", icon: Sprout },
   { label: "選果登録", href: "/sorting/new", icon: ClipboardCheck },
   { label: "追熟開始", href: "/ripening/new", icon: Timer },
+  { label: "出荷処理", href: "/shipping/new", icon: Truck },
 ];
 
 const pendingActions = [
-  { label: "出荷処理", icon: Truck },
   { label: "納品書作成", icon: FileText },
 ];
 

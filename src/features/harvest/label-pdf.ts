@@ -12,11 +12,11 @@ import {
 import type { HarvestLabelData } from "@/features/harvest/schema";
 
 const mm = (value: number) => (value * 72) / 25.4;
-const PAGE_WIDTH = mm(297);
-const PAGE_HEIGHT = mm(210);
-const MARGIN = mm(8);
-const LABEL_COLUMN = mm(36);
-const ROW_HEIGHTS = [13, 13, 13, 13, 17, 13, 13, 13, 15, 15, 44, 12].map(
+const PAGE_WIDTH = mm(210);
+const PAGE_HEIGHT = mm(148);
+const MARGIN = mm(6);
+const LABEL_COLUMN = mm(25);
+const ROW_HEIGHTS = [9, 9, 9, 9, 12, 9, 9, 9, 10.5, 10.5, 31, 9].map(
   mm,
 );
 const INK = rgb(0.07, 0.07, 0.07);
@@ -33,7 +33,7 @@ function readLabelFont() {
 
 function fitSize(font: PDFFont, text: string, maxWidth: number, preferred: number) {
   let size = preferred;
-  while (size > 8 && font.widthOfTextAtSize(text, size) > maxWidth) size -= 0.25;
+  while (size > 7 && font.widthOfTextAtSize(text, size) > maxWidth) size -= 0.25;
   return size;
 }
 
@@ -47,9 +47,9 @@ function drawText(
   height: number,
   preferredSize: number,
 ) {
-  const size = fitSize(font, text, width - mm(6.8), preferredSize);
+  const size = fitSize(font, text, width - mm(4.8), preferredSize);
   page.drawText(text, {
-    x: x + mm(3.4),
+    x: x + mm(2.4),
     y: bottom + (height - size) / 2 + 0.8,
     size,
     font,
@@ -84,7 +84,7 @@ export async function createHarvestLabelPdf(data: HarvestLabelData) {
     {
       label: "量",
       value: `${formatHarvestLabelWeight(data.weightKg)} kg`,
-      size: 22,
+      size: 15.5,
     },
     {
       label: "選果期限",
@@ -122,7 +122,7 @@ export async function createHarvestLabelPdf(data: HarvestLabelData) {
       });
     }
 
-    drawText(page, font, row.label, left, bottom, LABEL_COLUMN, height, 15);
+    drawText(page, font, row.label, left, bottom, LABEL_COLUMN, height, 10.5);
     if (row.isBreakdown) {
       const lineHeight = height / 5;
       for (let lineIndex = 0; lineIndex < 5; lineIndex += 1) {
@@ -143,7 +143,7 @@ export async function createHarvestLabelPdf(data: HarvestLabelData) {
           rowTop - lineHeight * (lineIndex + 1),
           right - valueLeft,
           lineHeight,
-          14.4,
+          10,
         );
       }
     } else {
@@ -155,7 +155,7 @@ export async function createHarvestLabelPdf(data: HarvestLabelData) {
         bottom,
         right - valueLeft,
         height,
-        row.size ?? 16.4,
+        row.size ?? 11.5,
       );
     }
     rowTop = bottom;

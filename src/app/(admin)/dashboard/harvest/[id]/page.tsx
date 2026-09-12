@@ -64,7 +64,7 @@ export default async function DashboardHarvestDetailPage({
       <section className="rounded-2xl bg-white/75 p-4 shadow-sm sm:p-6">
         <div className="mb-4">
           <h2 className="font-bold text-kiwi-ink">印刷プレビュー</h2>
-          <p className="mt-1 text-xs text-muted-foreground">画面では縮小表示・印刷/PDFはA4横</p>
+          <p className="mt-1 text-xs text-muted-foreground">画面では縮小表示・印刷/PDFはA5横</p>
         </div>
         <div className="max-w-full overflow-auto">
           <HarvestLabel data={data} />

@@ -22,7 +22,7 @@ function todayInJst() {
  * Fetches form options and staff in parallel, then composes the operational
  * header and client form without putting data access in the route file.
  */
-export async function NewSortingScreen() {
+export async function NewSortingScreen({ returnTo }: { returnTo?: "/dashboard" }) {
   const [options, currentStaff] = await Promise.all([
     getSortingFormOptions(),
     getCurrentSortingStaff(),
@@ -32,7 +32,7 @@ export async function NewSortingScreen() {
     <main className="flex-1 px-[7%] pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-[calc(env(safe-area-inset-bottom)+2rem)]">
       <header className="relative mb-8 flex h-11 items-center justify-center">
         <div className="absolute -left-2">
-          <BackButton href="/home" />
+          <BackButton fallbackHref={returnTo ?? "/home"} />
         </div>
         <h1 className="text-[clamp(1.1rem,5cqw,1.35rem)] font-bold text-kiwi-ink">
           選果入力
@@ -43,6 +43,7 @@ export async function NewSortingScreen() {
         currentStaff={currentStaff}
         options={options}
         defaultSortingDate={todayInJst()}
+        returnTo={returnTo}
       />
     </main>
   );

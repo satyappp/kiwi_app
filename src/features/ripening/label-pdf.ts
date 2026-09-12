@@ -14,12 +14,12 @@ import {
 import type { RipeningLabelData } from "@/features/ripening/schema";
 
 const mm = (value: number) => (value * 72) / 25.4;
-const PAGE_WIDTH = mm(297);
-const PAGE_HEIGHT = mm(210);
-const MARGIN = mm(8);
-const LABEL_COLUMN = mm(36);
-// The rows add up to the exact 194 mm printable height inside the 8 mm margins.
-const ROW_HEIGHTS = [13, 13, 13, 13, 15, 17, 17, 17, 15, 49, 12].map(
+const PAGE_WIDTH = mm(210);
+const PAGE_HEIGHT = mm(148);
+const MARGIN = mm(6);
+const LABEL_COLUMN = mm(25);
+// The rows add up to the exact 136 mm printable height inside the 6 mm margins.
+const ROW_HEIGHTS = [9, 9, 9, 9, 10.5, 12, 12, 12, 10.5, 34, 9].map(
   mm,
 );
 const INK = rgb(0.07, 0.07, 0.07);
@@ -36,7 +36,7 @@ function readLabelFont() {
 
 function fitSize(font: PDFFont, text: string, maxWidth: number, preferred: number) {
   let size = preferred;
-  while (size > 8 && font.widthOfTextAtSize(text, size) > maxWidth) size -= 0.25;
+  while (size > 7 && font.widthOfTextAtSize(text, size) > maxWidth) size -= 0.25;
   return size;
 }
 
@@ -50,9 +50,9 @@ function drawCenteredText(
   height: number,
   preferredSize: number,
 ) {
-  const size = fitSize(font, text, width - mm(6.8), preferredSize);
+  const size = fitSize(font, text, width - mm(4.8), preferredSize);
   page.drawText(text, {
-    x: x + mm(3.4),
+    x: x + mm(2.4),
     y: bottom + (height - size) / 2 + 0.8,
     size,
     font,
@@ -84,7 +84,7 @@ export async function createRipeningLabelPdf(data: RipeningLabelData) {
     { label: "園地", value: data.plotNames.join("・") || "-" },
     { label: "品種", value: data.varietyName },
     { label: "等級", value: data.sizeCodes.join("・") || "-" },
-    { label: "量", value: `${formatLabelWeight(data.weightKg)} kg`, size: 22 },
+    { label: "量", value: `${formatLabelWeight(data.weightKg)} kg`, size: 15.5 },
     { label: "寝かせ", value: blankRestingRange },
     {
       label: "エチレン",
@@ -135,7 +135,7 @@ export async function createRipeningLabelPdf(data: RipeningLabelData) {
       bottom,
       LABEL_COLUMN,
       height,
-      15,
+      10.5,
     );
 
     if (row.isBreakdown) {
@@ -158,7 +158,7 @@ export async function createRipeningLabelPdf(data: RipeningLabelData) {
           rowTop - lineHeight * (lineIndex + 1),
           right - valueLeft,
           lineHeight,
-          14.4,
+          10,
         );
       }
     } else {
@@ -170,7 +170,7 @@ export async function createRipeningLabelPdf(data: RipeningLabelData) {
         bottom,
         right - valueLeft,
         height,
-        row.size ?? 16.4,
+        row.size ?? 11.5,
       );
     }
     rowTop = bottom;

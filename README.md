@@ -20,8 +20,10 @@ following functionality:
 | 収穫登録 | Connected | Harvest input using live Supabase master data and database-generated fields |
 | 選果入力 | Connected | Sorting records linked to a harvest, size standards, remaining-weight display, and overage warning |
 | 追熟開始 | Connected | Ripening batches, source-weight allocation, schedule calculation, current status, and confirmation actions |
-| Dashboard | Placeholder | Auth-protected `/dashboard` route; management content is still being developed |
-| 冷蔵保管・出荷処理・受注確認 | Placeholder | Home buttons are visible but do not yet have completed workflows |
+| Dashboard | Connected | Live harvest, unsorted, ripening, and ready-stock summaries |
+| 在庫確認 | Connected | Live cold, ripening, ready, reserved, and shipped inventory by variety |
+| 出荷処理 | Connected | Partner/package selection with atomic FIFO stock allocation |
+| 納品書作成 | Placeholder | Menu entry is visible; the workflow is not implemented yet |
 
 Placeholder UI must not be treated as live operational data.
 
@@ -42,8 +44,8 @@ domain logic:
 
 | Surface | Routes | Intended use |
 | --- | --- | --- |
-| Operational app | `/`, `/harvest/new`, `/sorting/new`, `/ripening/new` | Fast field entry on phones and installed PWAs |
-| Management app | `/dashboard`, `/dashboard/*` | Wider desktop views, summaries, and analysis |
+| Operational app | `/home`, `/harvest/new`, `/sorting/new`, `/ripening/new`, `/inventory`, `/shipping/new` | Fast field entry and checks on phones and installed PWAs |
+| Management app | `/dashboard`, `/dashboard/harvest`, `/dashboard/ripening`, `/dashboard/inventory` | Wider desktop views, summaries, and analysis |
 
 Both surfaces are protected by Supabase authentication. The route split is for
 presentation and workflow—not separate business logic.
@@ -106,7 +108,11 @@ For a new Supabase project, apply the migrations in this exact order:
 2. `supabase/migrations/20260901130000_sorting_schema.sql`
 3. `supabase/migrations/20260902120000_sorting_date_input.sql`
 4. `supabase/migrations/20260902130000_ripening_schema.sql`
-5. `supabase/migrations/20260907193000_sync_variety_master.sql`
+5. `supabase/migrations/20260907100000_sync_variety_master.sql`
+6. `supabase/migrations/20260907110000_business_partners.sql`
+7. `supabase/migrations/20260907120000_inventory_schema.sql`
+8. `supabase/migrations/20260907130000_shipping_sales_schema.sql`
+9. `supabase/migrations/20260913120000_harden_inventory_shipping_security.sql`
 
 Open **Supabase Dashboard → SQL Editor**, paste one complete file, run it, and
 only then proceed to the next file. The migrations establish tables, seed
@@ -186,6 +192,19 @@ deadline, prefills its available weight, then fills conditions from the
 month-and-variety master and the latest batch for the same variety. Staff can
 still select another source and edit every prefilled value before confirming.
 
+### Inventory — 在庫確認
+
+Inventory is derived from sorting, ripening, and shipping records instead of
+manually copied totals. Staff can filter one variety across cold, ripening,
+ready-to-ship, reserved, and shipped states.
+
+### Shipping — 出荷処理
+
+Staff select a partner, available variety/size stock, optional package, weight,
+price, and shipping/delivery dates. One authenticated database function locks
+the relevant stock and allocates it FIFO, so concurrent registrations cannot
+sell the same ready inventory twice.
+
 ## Database overview
 
 | Table | Responsibility |
@@ -201,6 +220,10 @@ still select another source and edit every prefilled value before confirming.
 | `ripening_rules` | Month-and-variety processing conditions |
 | `ripening_batches` | Individual ripening runs and calculated schedule |
 | `ripening_batch_items` | Sorting-weight allocations within each batch |
+| `business_partners` | Shipping/customer master data |
+| `delivery_packages` | Package and default-price master data |
+| `shipping_sales` | Shipping and sales registrations |
+| `shipping_sale_allocations` | FIFO allocations from ready ripening items |
 
 Flattened and aggregate database views provide display-ready reads without
 duplicating names or derived totals in application code. The complete table and
@@ -216,6 +239,8 @@ view reference is in [supabase/README.md](supabase/README.md).
 - Forms are validated with Zod in the browser and again in server actions.
 - Database constraints and triggers remain authoritative for relationships,
   allocation totals, timestamps, and derived values.
+- Direct writes to shipping allocations are denied; authenticated staff must
+  use the validated `create_shipping_sale` database function.
 - Anonymous clients are not granted operational table access.
 
 Never import the admin client into a Client Component and never add a
