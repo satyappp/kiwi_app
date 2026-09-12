@@ -5,6 +5,7 @@ import Link from "next/link";
 import { LogOut } from "lucide-react";
 
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { BrandLogo } from "@/components/layout/brand-logo";
 import { logout } from "@/features/auth";
 import { mobileNavigation } from "@/components/layout/navigation";
 
@@ -25,12 +26,10 @@ export function MobileNavigation() {
       </SheetTrigger>
       <SheetContent side="left" className="w-[min(86vw,340px)] border-kiwi/10 bg-kiwi-cream p-0">
         <div className="border-b border-kiwi/10 px-6 py-6">
-          <div className="flex items-center gap-3">
-            <Image src="/assets/brand/kiwi-mark.png" alt="" width={42} height={42} />
-            <div>
-              <SheetTitle className="text-xl font-bold text-kiwi-ink">ReFruits</SheetTitle>
-              <p className="text-xs text-muted-foreground">作業メニュー</p>
-            </div>
+          <div>
+            <SheetTitle className="sr-only">ReFruits 作業メニュー</SheetTitle>
+            <BrandLogo priority className="w-[132px]" />
+            <p className="mt-1 text-xs text-muted-foreground">作業メニュー</p>
           </div>
         </div>
 

@@ -1,6 +1,7 @@
 import { LogOut } from "lucide-react";
 
 import { MobileNavigation } from "@/components/layout/mobile-navigation";
+import { BrandLogo } from "@/components/layout/brand-logo";
 import { logout } from "@/features/auth";
 
 export function AppHeader() {
@@ -10,8 +11,8 @@ export function AppHeader() {
 
       <MobileNavigation />
 
-      <h1 className="relative text-[clamp(1.15rem,5.6cqw,1.4rem)] font-bold tracking-[0.02em] text-kiwi-ink">
-        ReFruits
+      <h1 className="relative">
+        <BrandLogo priority className="w-[112px]" />
       </h1>
 
       <form action={logout} className="relative -mr-1.5">

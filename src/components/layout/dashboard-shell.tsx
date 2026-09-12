@@ -1,11 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut, Menu } from "lucide-react";
 
 import { dashboardNavigation } from "@/components/layout/navigation";
+import { BrandLogo } from "@/components/layout/brand-logo";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { logout } from "@/features/auth";
 import { cn } from "@/lib/utils";
@@ -64,12 +64,9 @@ function DashboardNavigationLinks() {
 
 function Brand() {
   return (
-    <Link href="/dashboard" className="flex items-center gap-3 px-6 py-7">
-      <Image src="/assets/brand/kiwi-mark.png" alt="" width={48} height={48} />
-      <div>
-        <div className="text-2xl font-bold tracking-tight text-kiwi-ink">ReFruits</div>
-        <div className="text-[11px] text-muted-foreground">農園の毎日を、軽やかに。</div>
-      </div>
+    <Link href="/dashboard" className="flex flex-col items-start px-6 py-6">
+      <BrandLogo priority className="w-[146px]" />
+      <span className="mt-1 text-[11px] text-muted-foreground">農園の毎日を、軽やかに。</span>
     </Link>
   );
 }
