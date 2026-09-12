@@ -11,8 +11,8 @@ const items: MenuItem[] = [
   { label: "収穫登録", icon: "harvest", href: "/harvest/new" },
   { label: "選果登録", icon: "sorting", href: "/sorting/new" },
   { label: "追熟開始", icon: "ripening", href: "/ripening/new" },
-  { label: "在庫確認", icon: "cold" },
-  { label: "出荷処理", icon: "shipping" },
+  { label: "在庫確認", icon: "cold", href: "/inventory" },
+  { label: "出荷処理", icon: "shipping", href: "/shipping/new" },
   { label: "納品書作成", icon: "orders" },
 ];
 

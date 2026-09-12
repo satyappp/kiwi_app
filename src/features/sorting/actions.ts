@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import {
   getSortingOverageKg,
@@ -117,6 +118,10 @@ export async function createSorting(
   revalidatePath("/");
   revalidatePath("/sorting/new");
   revalidatePath("/dashboard");
+
+  if (formData.get("returnTo") === "/dashboard") {
+    redirect("/dashboard");
+  }
 
   return {
     ok: true,

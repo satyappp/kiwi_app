@@ -10,7 +10,7 @@ type WithOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
  * insert defaults here.
  */
 export type AppDatabase = Omit<Database, "public"> & {
-  public: Omit<Database["public"], "Tables"> & {
+  public: Omit<Database["public"], "Tables" | "Functions"> & {
     Tables: Omit<
       Database["public"]["Tables"],
       "harvest_logs" | "ripening_batches"
@@ -27,6 +27,19 @@ export type AppDatabase = Omit<Database, "public"> & {
           | "shippable_at"
           | "title"
         >;
+      };
+    };
+    Functions: Omit<Database["public"]["Functions"], "create_shipping_sale"> & {
+      /** PostgreSQL accepts NULL for the optional package and notes inputs. */
+      create_shipping_sale: {
+        Args: Omit<
+          Database["public"]["Functions"]["create_shipping_sale"]["Args"],
+          "p_delivery_package_id" | "p_notes"
+        > & {
+          p_delivery_package_id: string | null;
+          p_notes?: string | null;
+        };
+        Returns: string;
       };
     };
   };

@@ -53,6 +53,66 @@ export type Database = {
         }
         Relationships: []
       }
+      delivery_packages: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          legacy_id: string
+          notes: string | null
+          package_format: string | null
+          package_name: string | null
+          size_standard_id: string | null
+          source_sorting_title: string
+          unit_price_yen_per_kg: number | null
+          updated_at: string
+          variety_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          legacy_id: string
+          notes?: string | null
+          package_format?: string | null
+          package_name?: string | null
+          size_standard_id?: string | null
+          source_sorting_title: string
+          unit_price_yen_per_kg?: number | null
+          updated_at?: string
+          variety_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          legacy_id?: string
+          notes?: string | null
+          package_format?: string | null
+          package_name?: string | null
+          size_standard_id?: string | null
+          source_sorting_title?: string
+          unit_price_yen_per_kg?: number | null
+          updated_at?: string
+          variety_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_packages_size_standard_id_fkey"
+            columns: ["size_standard_id"]
+            isOneToOne: false
+            referencedRelation: "size_standards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_packages_variety_id_fkey"
+            columns: ["variety_id"]
+            isOneToOne: false
+            referencedRelation: "varieties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       harvest_logs: {
         Row: {
           branch: string | null
@@ -138,6 +198,118 @@ export type Database = {
             columns: ["variety_id"]
             isOneToOne: false
             referencedRelation: "varieties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_reservations: {
+        Row: {
+          cancelled_at: string | null
+          created_at: string
+          created_by: string
+          customer_name: string
+          id: string
+          notes: string | null
+          reserved_at: string
+          ripening_batch_id: string
+          updated_at: string
+          weight_kg: number
+        }
+        Insert: {
+          cancelled_at?: string | null
+          created_at?: string
+          created_by?: string
+          customer_name: string
+          id?: string
+          notes?: string | null
+          reserved_at?: string
+          ripening_batch_id: string
+          updated_at?: string
+          weight_kg: number
+        }
+        Update: {
+          cancelled_at?: string | null
+          created_at?: string
+          created_by?: string
+          customer_name?: string
+          id?: string
+          notes?: string | null
+          reserved_at?: string
+          ripening_batch_id?: string
+          updated_at?: string
+          weight_kg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_reservations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_reservations_ripening_batch_id_fkey"
+            columns: ["ripening_batch_id"]
+            isOneToOne: false
+            referencedRelation: "ripening_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_reservations_ripening_batch_id_fkey"
+            columns: ["ripening_batch_id"]
+            isOneToOne: false
+            referencedRelation: "ripening_batches_expanded"
+            referencedColumns: ["work_record_id"]
+          },
+        ]
+      }
+      inventory_shipments: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          is_void: boolean
+          notes: string | null
+          reservation_id: string
+          shipped_at: string
+          updated_at: string
+          weight_kg: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_void?: boolean
+          notes?: string | null
+          reservation_id: string
+          shipped_at?: string
+          updated_at?: string
+          weight_kg: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_void?: boolean
+          notes?: string | null
+          reservation_id?: string
+          shipped_at?: string
+          updated_at?: string
+          weight_kg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_shipments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_shipments_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_reservations"
             referencedColumns: ["id"]
           },
         ]
@@ -469,6 +641,142 @@ export type Database = {
           },
         ]
       }
+      shipping_sale_allocations: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          ripening_batch_item_id: string
+          shipping_sale_id: string
+          weight_kg: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          ripening_batch_item_id: string
+          shipping_sale_id: string
+          weight_kg: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          ripening_batch_item_id?: string
+          shipping_sale_id?: string
+          weight_kg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipping_sale_allocations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipping_sale_allocations_ripening_batch_item_id_fkey"
+            columns: ["ripening_batch_item_id"]
+            isOneToOne: false
+            referencedRelation: "ripening_batch_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipping_sale_allocations_shipping_sale_id_fkey"
+            columns: ["shipping_sale_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipping_sales: {
+        Row: {
+          business_partner_id: string
+          cancelled_at: string | null
+          created_at: string
+          created_by: string
+          delivery_date: string
+          delivery_package_id: string | null
+          id: string
+          notes: string | null
+          quantity_kg: number
+          shipping_date: string
+          size_standard_id: string
+          unit_price_yen_per_kg: number
+          updated_at: string
+          variety_id: string
+        }
+        Insert: {
+          business_partner_id: string
+          cancelled_at?: string | null
+          created_at?: string
+          created_by?: string
+          delivery_date: string
+          delivery_package_id?: string | null
+          id?: string
+          notes?: string | null
+          quantity_kg: number
+          shipping_date: string
+          size_standard_id: string
+          unit_price_yen_per_kg: number
+          updated_at?: string
+          variety_id: string
+        }
+        Update: {
+          business_partner_id?: string
+          cancelled_at?: string | null
+          created_at?: string
+          created_by?: string
+          delivery_date?: string
+          delivery_package_id?: string | null
+          id?: string
+          notes?: string | null
+          quantity_kg?: number
+          shipping_date?: string
+          size_standard_id?: string
+          unit_price_yen_per_kg?: number
+          updated_at?: string
+          variety_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipping_sales_business_partner_id_fkey"
+            columns: ["business_partner_id"]
+            isOneToOne: false
+            referencedRelation: "business_partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipping_sales_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipping_sales_delivery_package_id_fkey"
+            columns: ["delivery_package_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipping_sales_size_standard_id_fkey"
+            columns: ["size_standard_id"]
+            isOneToOne: false
+            referencedRelation: "size_standards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipping_sales_variety_id_fkey"
+            columns: ["variety_id"]
+            isOneToOne: false
+            referencedRelation: "varieties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       size_standards: {
         Row: {
           code: string
@@ -710,6 +1018,23 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_status: {
+        Row: {
+          customer_name: string | null
+          deadline_at: string | null
+          location_name: string | null
+          occurred_at: string | null
+          plot_name: string | null
+          size_name: string | null
+          source_id: string | null
+          status: string | null
+          title: string | null
+          variety_id: string | null
+          variety_name: string | null
+          weight_kg: number | null
+        }
+        Relationships: []
+      }
       ripening_batches_expanded: {
         Row: {
           breakdown: Json | null
@@ -813,6 +1138,31 @@ export type Database = {
             columns: ["variety_id"]
             isOneToOne: false
             referencedRelation: "varieties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipping_available_inventory: {
+        Row: {
+          available_weight_kg: number | null
+          size_code: string | null
+          size_standard_id: string | null
+          variety_id: string | null
+          variety_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "harvest_logs_variety_id_fkey"
+            columns: ["variety_id"]
+            isOneToOne: false
+            referencedRelation: "varieties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sorting_logs_size_standard_id_fkey"
+            columns: ["size_standard_id"]
+            isOneToOne: false
+            referencedRelation: "size_standards"
             referencedColumns: ["id"]
           },
         ]
@@ -995,7 +1345,20 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      create_shipping_sale: {
+        Args: {
+          p_business_partner_id: string
+          p_delivery_date: string
+          p_delivery_package_id: string
+          p_notes?: string
+          p_quantity_kg: number
+          p_shipping_date: string
+          p_size_standard_id: string
+          p_unit_price_yen_per_kg: number
+          p_variety_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

@@ -5,6 +5,7 @@ import { HarvestTable } from "@/features/harvest/components/harvest-table";
 import { HarvestWeightChart } from "@/features/harvest/components/harvest-charts";
 import { DashboardQuickActions } from "@/features/harvest/components/dashboard-quick-actions";
 import type { HarvestDashboardData, HarvestPeriod } from "@/features/harvest/schema";
+import type { InventoryOverview, InventoryStatus } from "@/features/inventory";
 import { cn } from "@/lib/utils";
 
 const periods: Array<{ value: HarvestPeriod; label: string }> = [
@@ -17,7 +18,21 @@ function periodHref(period: HarvestPeriod) {
   return period === "month" ? "/dashboard" : `/dashboard?period=${period}`;
 }
 
-export function HarvestDashboard({ data, staffName }: { data: HarvestDashboardData; staffName: string }) {
+function inventoryWeight(inventory: InventoryOverview, status: InventoryStatus) {
+  return inventory.rows
+    .filter((row) => row.status === status)
+    .reduce((total, row) => total + row.weightKg, 0);
+}
+
+export function HarvestDashboard({
+  data,
+  inventory,
+  staffName,
+}: {
+  data: HarvestDashboardData;
+  inventory: InventoryOverview;
+  staffName: string;
+}) {
   const today = new Intl.DateTimeFormat("ja-JP", {
     timeZone: "Asia/Tokyo",
     year: "numeric",
@@ -26,12 +41,54 @@ export function HarvestDashboard({ data, staffName }: { data: HarvestDashboardDa
     weekday: "short",
   }).format(new Date());
 
+  const formatWeight = (value: number) =>
+    value.toLocaleString("ja-JP", { maximumFractionDigits: 2 });
+  const coldWeightKg = inventoryWeight(inventory, "cold");
+  const ripeningWeightKg = inventoryWeight(inventory, "ripening");
+  const readyWeightKg = inventoryWeight(inventory, "ready");
+  const reservedWeightKg = inventoryWeight(inventory, "reserved");
+  const nextColdItem = inventory.rows
+    .filter((row) => row.status === "cold" && row.deadlineAt)
+    .sort((left, right) =>
+      (left.deadlineAt ?? "").localeCompare(right.deadlineAt ?? ""),
+    )[0];
+  const nextAction = data.nextAction
+    ? {
+        message: `${data.nextAction.varietyName}（${data.nextAction.plotName}）の選果期限は ${data.nextAction.sortingDeadline} です。`,
+        href: "/sorting/new?returnTo=/dashboard",
+        label: "選果を入力",
+      }
+    : nextColdItem
+      ? {
+          message: `${nextColdItem.varietyName}の追熟開始期限を確認してください。`,
+          href: "/ripening/new",
+          label: "追熟を開始",
+        }
+      : readyWeightKg > 0
+        ? {
+            message: `${formatWeight(readyWeightKg)} kgの出荷可能在庫があります。`,
+            href: "/shipping/new",
+            label: "出荷を入力",
+          }
+        : null;
+
   const summaryCards = [
-    { label: `${data.periodLabel}の収穫量`, value: data.totalWeightKg.toLocaleString("ja-JP", { maximumFractionDigits: 2 }), unit: "kg", detail: `${data.recordCount}件の収穫記録`, icon: Sprout, tone: "bg-amber-100 text-amber-700", isPending: false },
-    { label: "未選果量", value: data.unsortedWeightKg.toLocaleString("ja-JP", { maximumFractionDigits: 2 }), unit: "kg", detail: data.attentionCount > 0 ? `期限確認 ${data.attentionCount}件` : "期限内です", icon: Scale, tone: "bg-kiwi-pale/60 text-kiwi-ink", isPending: false },
-    { label: "追熟中", value: "—", unit: "kg", detail: "追熟機能から連携予定", icon: Timer, tone: "bg-violet-50 text-violet-700", isPending: true },
-    { label: "出荷可能", value: "—", unit: "kg", detail: "在庫機能から連携予定", icon: Truck, tone: "bg-sky-50 text-sky-700", isPending: true },
+    { label: `${data.periodLabel}の収穫量`, value: formatWeight(data.totalWeightKg), unit: "kg", detail: `${data.recordCount}件の収穫記録`, icon: Sprout, tone: "bg-amber-100 text-amber-700", href: "/dashboard/harvest" },
+    { label: "未選果量", value: formatWeight(data.unsortedWeightKg), unit: "kg", detail: data.attentionCount > 0 ? `期限確認 ${data.attentionCount}件` : "期限内です", icon: Scale, tone: "bg-kiwi-pale/60 text-kiwi-ink", href: "/sorting/new" },
+    { label: "追熟中", value: formatWeight(ripeningWeightKg), unit: "kg", detail: `${inventory.rows.filter((row) => row.status === "ripening").length}件`, icon: Timer, tone: "bg-violet-50 text-violet-700", href: "/dashboard/ripening" },
+    { label: "出荷可能", value: formatWeight(readyWeightKg), unit: "kg", detail: reservedWeightKg > 0 ? `予約済み ${formatWeight(reservedWeightKg)} kg` : "現在の在庫", icon: Truck, tone: "bg-sky-50 text-sky-700", href: "/dashboard/inventory" },
   ];
+  const processStages = [
+    { label: "未選果", value: data.unsortedWeightKg, color: "bg-amber-400", href: "/sorting/new" },
+    { label: "冷蔵中", value: coldWeightKg, color: "bg-cyan-300", href: "/dashboard/inventory" },
+    { label: "追熟中", value: ripeningWeightKg, color: "bg-violet-300", href: "/dashboard/ripening" },
+    { label: "出荷可能在庫", value: readyWeightKg, color: "bg-sky-300", href: "/dashboard/inventory" },
+    { label: "予約済み", value: reservedWeightKg, color: "bg-emerald-300", href: "/dashboard/inventory" },
+  ];
+  const maximumStageWeight = Math.max(
+    1,
+    ...processStages.map((stage) => stage.value),
+  );
 
   return (
     <div className="space-y-7 lg:space-y-9">
@@ -53,14 +110,15 @@ export function HarvestDashboard({ data, staffName }: { data: HarvestDashboardDa
         <div className="mt-3 min-w-0 flex-1 sm:mt-0">
           <p className="font-bold text-amber-900">次のアクション</p>
           <p className="mt-1 text-sm text-amber-900/65">
-            {data.nextAction
-              ? `${data.nextAction.varietyName}（${data.nextAction.plotName}）の選果期限は ${data.nextAction.sortingDeadline} です。`
-              : "現在、選果期限が近い収穫記録はありません。"}
+            {nextAction?.message ?? "現在、確認が必要な作業はありません。"}
           </p>
         </div>
-        {data.nextAction && (
-          <Link href="/dashboard/harvest" className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-amber-800 sm:mt-0">
-            確認する <ArrowRight className="size-4" />
+        {nextAction && (
+          <Link
+            href={nextAction.href}
+            className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-amber-800 sm:mt-0"
+          >
+            {nextAction.label} <ArrowRight className="size-4" />
           </Link>
         )}
       </section>
@@ -81,7 +139,7 @@ export function HarvestDashboard({ data, staffName }: { data: HarvestDashboardDa
         </div>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {summaryCards.map((card) => (
-            <article key={card.label} className="rounded-2xl border border-white/80 bg-white/88 p-5 shadow-[0_14px_34px_-22px_rgba(55,75,35,.3)]">
+            <Link key={card.label} href={card.href} className="rounded-2xl border border-white/80 bg-white/88 p-5 shadow-[0_14px_34px_-22px_rgba(55,75,35,.3)] transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
               <div className="flex items-start justify-between gap-3">
                 <p className="text-sm font-medium text-muted-foreground">{card.label}</p>
                 <span className={cn("grid size-10 place-items-center rounded-xl", card.tone)}><card.icon className="size-5" /></span>
@@ -91,9 +149,9 @@ export function HarvestDashboard({ data, staffName }: { data: HarvestDashboardDa
               </p>
               <div className="mt-3 flex items-center justify-between gap-2 text-xs text-muted-foreground">
                 <span>{card.detail}</span>
-                {card.isPending && <span className="rounded-full bg-kiwi-tan/60 px-2 py-0.5 text-[10px] font-bold text-kiwi-brown">準備中</span>}
+                <ArrowRight className="size-4 text-kiwi" />
               </div>
-            </article>
+            </Link>
           ))}
         </div>
       </section>
@@ -112,25 +170,16 @@ export function HarvestDashboard({ data, staffName }: { data: HarvestDashboardDa
             <PackageCheck className="size-5 text-kiwi" />
           </div>
           <div className="mt-6 space-y-5">
-            {[
-              { label: "未選果", value: data.unsortedWeightKg, max: data.totalWeightKg, color: "bg-amber-400", pending: false },
-              { label: "選果済み（期間内）", value: data.sortedWeightKg, max: data.totalWeightKg, color: "bg-kiwi", pending: false },
-              { label: "追熟中", value: 0, max: 1, color: "bg-violet-300", pending: true },
-              { label: "出荷可能在庫", value: 0, max: 1, color: "bg-sky-300", pending: true },
-            ].map((stage) => (
-              <div key={stage.label}>
+            {processStages.map((stage) => (
+              <Link key={stage.label} href={stage.href} className="block rounded-lg p-1 transition hover:bg-kiwi-pale/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
                 <div className="mb-2 flex items-center justify-between text-sm">
                   <span className="font-medium text-muted-foreground">{stage.label}</span>
-                  {stage.pending ? (
-                    <span className="rounded-full bg-kiwi-tan/60 px-2 py-0.5 text-[10px] font-bold text-kiwi-brown">準備中</span>
-                  ) : (
-                    <strong className="tabular-nums text-kiwi-ink">{stage.value.toLocaleString("ja-JP", { maximumFractionDigits: 2 })} kg</strong>
-                  )}
+                  <strong className="tabular-nums text-kiwi-ink">{formatWeight(stage.value)} kg</strong>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-kiwi-pale/25">
-                  <div className={`h-full rounded-full ${stage.color}`} style={{ width: stage.pending ? "0%" : `${Math.min(100, stage.max > 0 ? (stage.value / stage.max) * 100 : 0)}%` }} />
+                  <div className={`h-full rounded-full ${stage.color}`} style={{ width: `${Math.min(100, (stage.value / maximumStageWeight) * 100)}%` }} />
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </article>

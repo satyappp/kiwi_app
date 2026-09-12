@@ -1,7 +1,9 @@
 # Supabase
 
-Canonical SQL lives in `migrations/`, applied by pasting into the
-**Supabase Dashboard → SQL editor** (we are not using the Supabase CLI yet).
+Canonical SQL lives in `migrations/`. The current hosted database was created
+through the **Supabase Dashboard → SQL editor**, so its migration-history table
+must be baselined before using `supabase db push`. Do not run `db push` until
+that one-time reconciliation has been completed.
 
 ## Apply a migration
 
@@ -62,7 +64,7 @@ exceptional batch. Add the farm's actual ripening locations to
 `ripening_locations`; after the first location is registered it becomes a
 reusable choice.
 
-## After `20260907193000_sync_variety_master.sql`
+## After `20260907100000_sync_variety_master.sql`
 
 Run it after the ripening migration. It aligns `varieties.legacy_code` with
 Google Sheets `品種マスタ / 品種マスタ_マスタ`, including backfilling the four
@@ -72,6 +74,33 @@ temporary non-kiwi placeholders (`梨(仮)`, `ぶどう(仮)`) are not imported.
 For each batch, the database snapshots the selected rule, calculates the
 ethylene end, resting start, and shippable timestamps, and exposes the current
 phase and next check through `ripening_batches_expanded`.
+
+## After `20260907110000_business_partners.sql`
+
+Run it after the variety sync. It creates the editable business-partner master
+and imports the historical partner list used by the shipping form.
+
+## After `20260907120000_inventory_schema.sql`
+
+Run it after the ripening migration. Inventory is calculated from process
+records instead of copying totals into another stock table: sorting increases
+cold inventory, ripening allocation moves weight into ripening inventory, and
+completion moves it into ready-to-ship inventory. The preserved
+`inventory_reservations` and `inventory_shipments` tables are read-only; the
+active shipping workflow writes through the atomic shipping RPC instead.
+
+## After `20260907130000_shipping_sales_schema.sql`
+
+Run it after the partner and inventory migrations. A shipping registration
+atomically creates the sale and allocates ready stock FIFO by variety and size.
+Direct inserts into sales or allocation tables are not allowed.
+
+## After `20260913120000_harden_inventory_shipping_security.sql`
+
+Run it last. This non-destructive hardening migration is required for hosted
+databases where the earlier inventory/shipping SQL was already run manually.
+It preserves all rows, removes unused direct-write paths, and makes the
+validated `create_shipping_sale` RPC the only stock-allocation mutation path.
 
 ## Tables
 
@@ -88,6 +117,12 @@ phase and next check through `ripening_batches_expanded`.
 | `ripening_rules` | 追熟条件マスタ | month/variety rules imported from the reference sheet |
 | `ripening_batches` | 追熟ロット | one row per ripening run, including schedule and confirmations |
 | `ripening_batch_items` | 追熟内訳 | sorting-log allocations and weights for each ripening batch |
+| `business_partners` | 取引先 | editable shipping/customer master |
+| `inventory_reservations` | 旧予約モデル | preserved read-only; not written by the app |
+| `inventory_shipments` | 旧出荷モデル | preserved read-only; not written by the app |
+| `delivery_packages` | 納品形態 | variety/size-specific package and default price master |
+| `shipping_sales` | 出荷・販売 | sale header and planned shipping/delivery dates |
+| `shipping_sale_allocations` | 在庫引当 | FIFO allocation from completed ripening items |
 
 ### Harvest input defaults
 
@@ -110,3 +145,10 @@ UI field is blank, the insert mapping must omit the column; it must not send
 | `ripening_rules_expanded` | month/variety rules with variety names and configured-state flag |
 | `sorting_ripening_status` | sorted, allocated, and still-available weight per sorting log |
 | `ripening_batches_expanded` | batch summary, breakdown, current phase, next check, and warning state |
+
+## Inventory read views
+
+| view | purpose |
+|---|---|
+| `inventory_status` | cold, ripening, ready-to-ship, reserved, and shipped weights by variety and source |
+| `shipping_available_inventory` | unallocated ready stock grouped by variety and size |
