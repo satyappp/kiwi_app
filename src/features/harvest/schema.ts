@@ -124,5 +124,5 @@ export type HarvestDashboardData = {
   attentionCount: number;
   dailyWeights: HarvestChartPoint[];
   recentHarvests: HarvestLogRow[];
-  nextAction: HarvestLogRow | null;
+  nextActions: HarvestLogRow[];
 };

@@ -31,7 +31,7 @@ type SortingFormProps = {
   currentStaff: StaffOption | null;
   options: SortingFormOptions;
   defaultSortingDate: string;
-  returnTo?: "/dashboard";
+  returnTo?: "/dashboard" | "/home";
 };
 
 const inputClass =

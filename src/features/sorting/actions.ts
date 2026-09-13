@@ -120,8 +120,9 @@ export async function createSorting(
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/sorting");
 
-  if (formData.get("returnTo") === "/dashboard") {
-    redirect("/dashboard");
+  const returnTo = formData.get("returnTo");
+  if (returnTo === "/dashboard" || returnTo === "/home") {
+    redirect(returnTo);
   }
 
   return {

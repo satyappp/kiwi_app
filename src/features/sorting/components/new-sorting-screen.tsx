@@ -22,7 +22,7 @@ function todayInJst() {
  * Fetches form options and staff in parallel, then composes the operational
  * header and client form without putting data access in the route file.
  */
-export async function NewSortingScreen({ returnTo }: { returnTo?: "/dashboard" }) {
+export async function NewSortingScreen({ returnTo }: { returnTo?: "/dashboard" | "/home" }) {
   const [options, currentStaff] = await Promise.all([
     getSortingFormOptions(),
     getCurrentSortingStaff(),

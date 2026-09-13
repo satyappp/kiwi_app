@@ -7,6 +7,8 @@ export default async function NewSortingPage({
   searchParams: Promise<{ returnTo?: string | string[] }>;
 }) {
   const params = await searchParams;
-  const returnTo = params.returnTo === "/dashboard" ? "/dashboard" : undefined;
+  const returnTo = params.returnTo === "/dashboard" || params.returnTo === "/home"
+    ? params.returnTo
+    : undefined;
   return <NewSortingScreen returnTo={returnTo} />;
 }
