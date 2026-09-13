@@ -30,7 +30,7 @@ export const dashboardNavigation: NavigationSection[] = [
     items: [
       { label: "ダッシュボード", href: "/dashboard", icon: LayoutDashboard },
       { label: "収穫データ", href: "/dashboard/harvest", icon: Sprout },
-      { label: "選果管理", href: "/sorting/new", icon: ClipboardList },
+      { label: "選果データ", href: "/dashboard/sorting", icon: ClipboardList },
       { label: "追熟管理", href: "/dashboard/ripening", icon: Timer },
       { label: "在庫確認", href: "/dashboard/inventory", icon: Snowflake },
       { label: "出荷管理", href: "/shipping/new", icon: Truck },

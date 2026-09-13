@@ -71,6 +71,49 @@ export type SortingFormOptions = {
   sizeStandards: SizeStandardOption[];
 };
 
+export type SortingStatus =
+  | "allocated"
+  | "partial"
+  | "overdue"
+  | "due-soon"
+  | "pending";
+
+/** One selection/sorting record displayed in management lists and analytics. */
+export type SortingLogRow = {
+  id: string;
+  inputTs: string;
+  sortingDate: string;
+  harvestLogId: string;
+  harvestTitle: string;
+  varietyName: string;
+  plotName: string;
+  sortingDeadline: string;
+  sizeCode: string;
+  sizeName: string;
+  weightKg: number;
+  allocatedWeightKg: number;
+  availableWeightKg: number;
+  ethyleneStartDeadline: string;
+  staffName: string;
+  status: SortingStatus;
+};
+
+export type SortingAnalyticsEntry = {
+  month: string;
+  varietyName: string;
+  sizeCode: string;
+  weightKg: number;
+  recordCount: number;
+};
+
+export type SortingChartPoint = {
+  label: string;
+  weightKg: number;
+};
+
+/** Complete database-backed data printed on one selection container label. */
+export type SortingLabelData = Omit<SortingLogRow, "status">;
+
 /** Returns how many kg this entry would exceed the remaining harvest by. */
 export function getSortingOverageKg(weightKg: number, remainingWeightKg: number) {
   return Math.max(0, Math.round((weightKg - remainingWeightKg) * 100) / 100);

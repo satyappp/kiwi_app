@@ -118,6 +118,7 @@ export async function createSorting(
   revalidatePath("/");
   revalidatePath("/sorting/new");
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/sorting");
 
   if (formData.get("returnTo") === "/dashboard") {
     redirect("/dashboard");
