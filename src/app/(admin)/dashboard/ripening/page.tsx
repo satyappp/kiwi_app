@@ -22,7 +22,7 @@ export default async function DashboardRipeningPage() {
             className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border bg-white px-4 text-sm font-bold text-kiwi-ink hover:bg-muted"
           >
             <ChartNoAxesGantt className="size-4" />
-            タイムライン表示例
+            タイムライン表示
           </Link>
           <Link
             href="/ripening/new"

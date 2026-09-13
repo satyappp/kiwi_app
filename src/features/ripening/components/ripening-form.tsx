@@ -787,22 +787,6 @@ export function RipeningForm({
         </div>
       </details>
 
-      {timeline && (
-        <section className="rounded-2xl bg-kiwi-ink p-4 text-white shadow-sm">
-          <h3 className="text-xs font-bold tracking-[0.1em] text-white/65">予定タイムライン</h3>
-          <div className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-2.5 text-sm">
-            <span className="text-white/65">エチレン開始</span>
-            <time className="text-right font-bold tabular-nums">{formatDateTime(timeline.start)}</time>
-            <span className="text-white/65">エチレン終了</span>
-            <time className="text-right font-bold tabular-nums text-kiwi-amber">{formatDateTime(timeline.ethyleneEnd)}</time>
-            <span className="text-white/65">保管開始</span>
-            <time className="text-right font-bold tabular-nums">{formatDateTime(timeline.ethyleneEnd)}</time>
-            <span className="text-white/65">出荷可能</span>
-            <time className="text-right font-bold tabular-nums text-kiwi-pale">{formatDateTime(timeline.shippable)}</time>
-          </div>
-        </section>
-      )}
-
       <details
         open={isMetaOpen}
         onToggle={(event) => setIsMetaOpen(event.currentTarget.open)}

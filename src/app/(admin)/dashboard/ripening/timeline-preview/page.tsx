@@ -71,7 +71,7 @@ export default function RipeningTimelinePreviewPage() {
           <div>
             <p className="text-xs font-bold tracking-[0.12em] text-kiwi">DESIGN PREVIEW</p>
             <h1 className="mt-1 text-2xl font-bold text-kiwi-ink sm:text-3xl">
-              追熟タイムライン表示例
+              追熟タイムライン
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
               異なる品種と処理時間が同時進行する場合のダッシュボード表示です。
@@ -88,12 +88,6 @@ export default function RipeningTimelinePreviewPage() {
         currentTime={new Date(PREVIEW_NOW).toISOString()}
       />
 
-      <section className="rounded-2xl border border-dashed border-kiwi/25 bg-white/70 p-5 text-sm text-muted-foreground">
-        <p className="font-bold text-kiwi-ink">確認していただきたいポイント</p>
-        <p className="mt-2 leading-6">
-          品種名とロット情報の見せ方、ロットごとの色分け、エチレン処理と保管期間の区切り、現在時刻と出荷可能時刻の把握しやすさをご確認ください。
-        </p>
-      </section>
     </div>
   );
 }
