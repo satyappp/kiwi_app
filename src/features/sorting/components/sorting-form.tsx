@@ -1,5 +1,7 @@
 "use client";
 
+import { Printer, RotateCcw } from "lucide-react";
+import Link from "next/link";
 import { useActionState, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -96,6 +98,7 @@ export function SortingForm({
   const formRef = useRef<HTMLFormElement>(null);
   const isSubmissionConfirmed = useRef(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isCompleteOpen, setIsCompleteOpen] = useState(false);
   const [sortingDate, setSortingDate] = useState(defaultSortingDate);
   const [harvestLogId, setHarvestLogId] = useState("");
   const [sizeStandardId, setSizeStandardId] = useState("");
@@ -110,6 +113,7 @@ export function SortingForm({
       // Keep the source harvest selected for the next size entry.
       setSizeStandardId("");
       setWeightKg(defaultWeightKg);
+      setIsCompleteOpen(true);
     }
     return result;
   }
@@ -185,16 +189,6 @@ export function SortingForm({
         >
           選択できる収穫データがありません。先に収穫を登録してください。
         </p>
-      )}
-
-      {state?.ok && (
-        <div
-          role="status"
-          className="space-y-1 rounded-xl bg-primary/10 px-4 py-3 text-sm text-kiwi-ink"
-        >
-          <p className="font-medium">選果を登録しました。</p>
-          {state.warning && <p className="text-kiwi-brown">{state.warning}</p>}
-        </div>
       )}
 
       {state && !state.ok && "formError" in state && (
@@ -444,6 +438,43 @@ export function SortingForm({
             >
               登録
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isCompleteOpen} onOpenChange={setIsCompleteOpen}>
+        <DialogContent showCloseButton={false} className="gap-5 rounded-3xl p-6 sm:max-w-md">
+          <DialogHeader className="items-center text-center">
+            <div className="mb-1 grid size-14 place-items-center rounded-full bg-primary/12 text-2xl text-primary">✓</div>
+            <DialogTitle className="text-xl font-bold text-kiwi-ink">選果を登録しました</DialogTitle>
+            <DialogDescription>次の操作を選んでください。</DialogDescription>
+          </DialogHeader>
+          {state?.ok && state.warning && (
+            <p className="rounded-xl bg-kiwi-amber/25 px-4 py-3 text-sm text-kiwi-brown">{state.warning}</p>
+          )}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsCompleteOpen(false);
+                requestAnimationFrame(() => document.getElementById("size-standard")?.focus());
+              }}
+              className="h-12 rounded-xl bg-white font-bold"
+            >
+              <RotateCcw className="size-4" />
+              続けて入力
+            </Button>
+            {state?.ok && (
+              <Button
+                render={<Link href={`/sorting/${state.id}/label`} target="_blank" />}
+                onClick={() => setIsCompleteOpen(false)}
+                className="h-12 rounded-xl font-bold"
+              >
+                <Printer className="size-4" />
+                印刷
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>
