@@ -1,5 +1,6 @@
 import type {
   RipeningFormOptions,
+  RipeningDetailData,
   RipeningHistoryRow,
   RipeningLabelBreakdown,
   RipeningLabelData,
@@ -76,7 +77,7 @@ export async function getRipeningFormOptions(): Promise<RipeningFormOptions> {
       supabase
         .from("ripening_batches")
         .select(
-          "variety_id, started_at, ethylene_temperature_c, ethylene_processing_hours, resting_temperature_c, resting_duration_hours",
+          "variety_id, location_id, started_at, ethylene_temperature_c, ethylene_processing_hours, resting_temperature_c, resting_duration_hours",
         )
         .is("cancelled_at", null)
         .order("started_at", { ascending: false })
@@ -109,6 +110,7 @@ export async function getRipeningFormOptions(): Promise<RipeningFormOptions> {
     if (recentSettingsByVariety.has(row.variety_id)) continue;
     recentSettingsByVariety.set(row.variety_id, {
       varietyId: row.variety_id,
+      locationId: row.location_id,
       startedAt: row.started_at,
       ethyleneTemperatureC: toNullableNumber(row.ethylene_temperature_c),
       ethyleneDurationHours: toNumber(row.ethylene_processing_hours),
@@ -199,7 +201,7 @@ export async function listActiveRipeningStatuses(): Promise<RipeningStatus[]> {
   const { data, error } = await supabase
     .from("ripening_batches_expanded")
     .select(
-      "work_record_id, ripening_no, ripening_title, ripening_location, variety_name, weight_kg, sorting_titles, ethylene_ended_at, shippable_at, phase, next_check_at, next_check_type, is_ethylene_processing, is_overdue, is_due_soon",
+      "work_record_id, ripening_no, ripening_title, ripening_location, variety_name, weight_kg, sorting_titles, started_at, ethylene_ended_at, shippable_at, phase, next_check_at, next_check_type, is_ethylene_processing, is_overdue, is_due_soon",
     )
     .is("cancelled_at", null)
     .is("completed_at", null)
@@ -224,6 +226,10 @@ export async function listActiveRipeningStatuses(): Promise<RipeningStatus[]> {
     ),
     weightKg: toNumber(row.weight_kg),
     sortingTitles: Array.isArray(row.sorting_titles) ? row.sorting_titles : [],
+    startedAt: requireDbValue(
+      row.started_at,
+      "ripening_batches_expanded.started_at",
+    ),
     ethyleneEndedAt: requireDbValue(
       row.ethylene_ended_at,
       "ripening_batches_expanded.ethylene_ended_at",
@@ -436,5 +442,53 @@ export async function getRipeningLabel(
     ),
     notes: batch.notes,
     breakdown,
+  };
+}
+
+/** Full operational detail used by the dashboard detail screen. */
+export async function getRipeningDetail(
+  id: string,
+): Promise<RipeningDetailData | null> {
+  if (!ripeningIdSchema.safeParse(id).success) return null;
+
+  const [label, statusResult] = await Promise.all([
+    getRipeningLabel(id),
+    (async () => {
+      const supabase = await createClient();
+      return supabase
+        .from("ripening_batches_expanded")
+        .select(
+          "phase, ethylene_processing_hours, ethylene_removed_at, resting_duration_hours, notifications_enabled, next_check_at, next_check_type, is_overdue, is_due_soon, completed_at, cancelled_at",
+        )
+        .eq("work_record_id", id)
+        .maybeSingle();
+    })(),
+  ]);
+
+  if (statusResult.error) {
+    throw new Error(`追熟詳細の取得に失敗しました (${statusResult.error.code})`);
+  }
+  if (!label || !statusResult.data) return null;
+
+  const row = statusResult.data;
+  return {
+    ...label,
+    phase: toPhase(requireDbValue(row.phase, "ripening_batches_expanded.phase")),
+    ethyleneProcessingHours: toNumber(row.ethylene_processing_hours),
+    ethyleneRemovedAt: row.ethylene_removed_at,
+    restingDurationHours: toNumber(row.resting_duration_hours),
+    notificationsEnabled: requireDbValue(
+      row.notifications_enabled,
+      "ripening_batches_expanded.notifications_enabled",
+    ),
+    nextCheckAt: row.next_check_at,
+    nextCheckType:
+      row.next_check_type === "ethylene_end" || row.next_check_type === "shippable"
+        ? row.next_check_type
+        : null,
+    isOverdue: requireDbValue(row.is_overdue, "ripening_batches_expanded.is_overdue"),
+    isDueSoon: requireDbValue(row.is_due_soon, "ripening_batches_expanded.is_due_soon"),
+    completedAt: row.completed_at,
+    cancelledAt: row.cancelled_at,
   };
 }

@@ -1,8 +1,7 @@
-import { Plus } from "lucide-react";
+import { ChartNoAxesGantt, Plus } from "lucide-react";
 import Link from "next/link";
 
-import { RipeningHistoryTable } from "@/features/ripening/components/ripening-history-table";
-import { listRipeningHistory } from "@/features/ripening/queries";
+import { listRipeningHistory, RipeningHistoryTable } from "@/features/ripening";
 
 export default async function DashboardRipeningPage() {
   const rows = await listRipeningHistory();
@@ -17,13 +16,22 @@ export default async function DashboardRipeningPage() {
             過去の追熟記録を確認し、コンテナラベルを再印刷できます。
           </p>
         </div>
-        <Link
-          href="/ripening/new"
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#557f3e] px-4 text-sm font-bold text-white hover:bg-[#466d33]"
-        >
-          <Plus className="size-4" />
-          追熟を開始
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/dashboard/ripening/timeline-preview"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border bg-white px-4 text-sm font-bold text-kiwi-ink hover:bg-muted"
+          >
+            <ChartNoAxesGantt className="size-4" />
+            タイムライン表示例
+          </Link>
+          <Link
+            href="/ripening/new"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#557f3e] px-4 text-sm font-bold text-white hover:bg-[#466d33]"
+          >
+            <Plus className="size-4" />
+            追熟を開始
+          </Link>
+        </div>
       </header>
 
       <section className="overflow-hidden rounded-2xl border border-white/80 bg-white/90 shadow-[0_14px_34px_-22px_rgba(55,75,35,.28)]">

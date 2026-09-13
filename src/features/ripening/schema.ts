@@ -131,6 +131,7 @@ export type RipeningRuleOption = {
 /** Most recently registered conditions for a variety, used only as a fallback. */
 export type RecentRipeningSetting = {
   varietyId: string;
+  locationId: string;
   startedAt: string;
   ethyleneTemperatureC: number | null;
   ethyleneDurationHours: number;
@@ -176,6 +177,7 @@ export type RipeningStatus = {
   varietyName: string;
   weightKg: number;
   sortingTitles: string[];
+  startedAt: string;
   ethyleneEndedAt: string;
   shippableAt: string;
   phase: RipeningPhase;
@@ -184,6 +186,20 @@ export type RipeningStatus = {
   isEthyleneProcessing: boolean;
   isOverdue: boolean;
   isDueSoon: boolean;
+};
+
+export type RipeningDetailData = RipeningLabelData & {
+  phase: RipeningPhase;
+  ethyleneProcessingHours: number;
+  ethyleneRemovedAt: string | null;
+  restingDurationHours: number;
+  notificationsEnabled: boolean;
+  nextCheckAt: string | null;
+  nextCheckType: "ethylene_end" | "shippable" | null;
+  isOverdue: boolean;
+  isDueSoon: boolean;
+  completedAt: string | null;
+  cancelledAt: string | null;
 };
 
 export type RipeningLabelBreakdown = {

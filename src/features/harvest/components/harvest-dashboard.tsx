@@ -6,6 +6,10 @@ import { HarvestWeightChart } from "@/features/harvest/components/harvest-charts
 import { DashboardQuickActions } from "@/features/harvest/components/dashboard-quick-actions";
 import type { HarvestDashboardData, HarvestPeriod } from "@/features/harvest/schema";
 import type { InventoryOverview, InventoryStatus } from "@/features/inventory";
+import {
+  RipeningTimeline,
+  type RipeningStatus,
+} from "@/features/ripening";
 import { cn } from "@/lib/utils";
 
 const periods: Array<{ value: HarvestPeriod; label: string }> = [
@@ -27,10 +31,12 @@ function inventoryWeight(inventory: InventoryOverview, status: InventoryStatus) 
 export function HarvestDashboard({
   data,
   inventory,
+  ripeningStatuses,
   staffName,
 }: {
   data: HarvestDashboardData;
   inventory: InventoryOverview;
+  ripeningStatuses: RipeningStatus[];
   staffName: string;
 }) {
   const today = new Intl.DateTimeFormat("ja-JP", {
@@ -155,6 +161,21 @@ export function HarvestDashboard({
           ))}
         </div>
       </section>
+
+      <RipeningTimeline
+        currentTime={new Date().toISOString()}
+        items={ripeningStatuses.map((status) => ({
+          id: status.id,
+          ripeningNo: status.ripeningNo,
+          varietyName: status.varietyName,
+          locationName: status.locationName,
+          weightKg: status.weightKg,
+          startedAt: status.startedAt,
+          ethyleneEndedAt: status.ethyleneEndedAt,
+          shippableAt: status.shippableAt,
+          href: `/dashboard/ripening/${status.id}`,
+        }))}
+      />
 
       <section className="grid gap-5 xl:grid-cols-[1.4fr_1fr]">
         <article className="rounded-2xl border border-white/80 bg-white/88 p-5 shadow-[0_14px_34px_-22px_rgba(55,75,35,.28)] sm:p-6">
