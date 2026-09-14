@@ -39,5 +39,6 @@ export async function createShippingSale(
   revalidatePath("/inventory");
   revalidatePath("/shipping/new");
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/delivery-notes");
   return { ok: true, id: data };
 }

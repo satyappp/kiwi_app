@@ -17,7 +17,6 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -26,10 +25,7 @@ const activeActions = [
   { label: "選果登録", href: "/sorting/new", icon: ClipboardCheck },
   { label: "追熟開始", href: "/ripening/new", icon: Timer },
   { label: "出荷処理", href: "/shipping/new", icon: Truck },
-];
-
-const pendingActions = [
-  { label: "納品書作成", icon: FileText },
+  { label: "納品書作成", href: "/dashboard/delivery-notes", icon: FileText },
 ];
 
 export function DashboardQuickActions() {
@@ -51,16 +47,6 @@ export function DashboardQuickActions() {
             >
               <action.icon className="size-4 text-kiwi" />
               {action.label}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          {pendingActions.map((action) => (
-            <DropdownMenuItem key={action.label} disabled className="gap-3 rounded-lg px-2 py-2.5">
-              <action.icon className="size-4" />
-              <span>{action.label}</span>
-              <span className="ml-auto text-[10px] font-bold text-muted-foreground">準備中</span>
             </DropdownMenuItem>
           ))}
         </DropdownMenuGroup>

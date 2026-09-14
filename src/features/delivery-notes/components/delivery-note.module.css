@@ -1,0 +1,243 @@
+.sheet {
+  box-sizing: border-box;
+  width: 210mm;
+  min-height: 297mm;
+  padding: 15mm 16mm 13mm;
+  background: #fff;
+  color: #171717;
+  font-family: "Noto Sans JP", sans-serif;
+  font-size: 9pt;
+  line-height: 1.55;
+  box-shadow: 0 18px 50px rgba(48, 65, 38, 0.16);
+}
+
+.title {
+  margin: 0 0 13mm;
+  text-align: center;
+  font-size: 21pt;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+}
+
+.top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 70mm;
+  gap: 12mm;
+  min-height: 60mm;
+}
+
+.recipientName {
+  margin: 0;
+  padding-bottom: 2mm;
+  border-bottom: 0.45mm solid #222;
+  font-size: 13pt;
+  font-weight: 700;
+}
+
+.recipientAddress {
+  min-height: 13mm;
+  margin-top: 3mm;
+  color: #444;
+  white-space: pre-line;
+}
+
+.message {
+  margin-top: 8mm;
+}
+
+.meta {
+  display: grid;
+  grid-template-columns: 27mm 1fr;
+  gap: 1.4mm 2mm;
+  margin-bottom: 6mm;
+}
+
+.meta dt {
+  font-weight: 700;
+}
+
+.meta dd {
+  margin: 0;
+  text-align: right;
+}
+
+.issuer {
+  position: relative;
+  min-height: 33mm;
+  padding-right: 14mm;
+}
+
+.issuerName {
+  margin-bottom: 2mm;
+  font-size: 11pt;
+  font-weight: 700;
+}
+
+.stamp {
+  position: absolute;
+  top: 1mm;
+  right: 0;
+  display: grid;
+  width: 12mm;
+  height: 12mm;
+  place-items: center;
+  border: 0.4mm solid #b95f5f;
+  color: #b95f5f;
+  font-size: 7pt;
+}
+
+.subject {
+  display: grid;
+  grid-template-columns: 18mm 1fr;
+  margin-top: 7mm;
+  border-bottom: 0.35mm solid #333;
+  font-size: 11pt;
+}
+
+.subjectLabel {
+  font-weight: 700;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  width: 104mm;
+  margin-top: 6mm;
+  border: 0.3mm solid #444;
+}
+
+.summaryCell {
+  min-height: 14mm;
+  border-right: 0.3mm solid #444;
+  text-align: center;
+}
+
+.summaryCell:last-child {
+  border-right: 0;
+}
+
+.summaryLabel {
+  padding: 1mm 2mm;
+  border-bottom: 0.25mm solid #777;
+  background: #f5f5f2;
+  font-size: 8pt;
+}
+
+.summaryValue {
+  padding: 1.7mm 2mm;
+  font-size: 11pt;
+  font-weight: 700;
+}
+
+.items {
+  width: 100%;
+  margin-top: 8mm;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.items th,
+.items td {
+  height: 8.5mm;
+  padding: 1.4mm 2mm;
+  border: 0.25mm solid #555;
+  overflow: hidden;
+  vertical-align: middle;
+}
+
+.items th {
+  height: 8mm;
+  background: #f3f4ef;
+  font-weight: 700;
+  text-align: center;
+}
+
+.descriptionColumn {
+  width: 48%;
+}
+
+.quantityColumn {
+  width: 10%;
+}
+
+.unitColumn {
+  width: 9%;
+}
+
+.priceColumn,
+.amountColumn {
+  width: 14%;
+}
+
+.taxColumn {
+  width: 9%;
+}
+
+.number {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.totals {
+  display: grid;
+  grid-template-columns: 1fr 42mm;
+  width: 82mm;
+  margin: 5mm 0 0 auto;
+  border-top: 0.3mm solid #444;
+  border-left: 0.3mm solid #444;
+}
+
+.totals dt,
+.totals dd {
+  min-height: 7.5mm;
+  margin: 0;
+  padding: 1.5mm 2.5mm;
+  border-right: 0.3mm solid #444;
+  border-bottom: 0.3mm solid #444;
+}
+
+.totals dt {
+  background: #f5f5f2;
+  font-weight: 700;
+}
+
+.totals dd {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.grandTotal {
+  font-size: 11pt;
+  font-weight: 700;
+}
+
+.notes {
+  min-height: 27mm;
+  margin-top: 8mm;
+  padding: 3mm 4mm;
+  border: 0.3mm solid #555;
+}
+
+.notesTitle {
+  margin-bottom: 2mm;
+  font-weight: 700;
+}
+
+.demoNote {
+  margin-top: 4mm;
+  color: #666;
+  font-size: 7.5pt;
+  text-align: right;
+}
+
+@media print {
+  .sheet {
+    width: 210mm;
+    height: 297mm;
+    min-height: 297mm;
+    box-shadow: none;
+    break-after: avoid;
+    break-inside: avoid;
+  }
+}
+
