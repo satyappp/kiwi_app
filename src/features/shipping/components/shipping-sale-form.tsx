@@ -1,7 +1,16 @@
 "use client";
 
+import { FileText, RotateCcw } from "lucide-react";
+import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -23,6 +32,7 @@ export function ShippingSaleForm({ options, defaultDate }: { options: ShippingFo
   const [sizeId, setSizeId] = useState("");
   const [packageId, setPackageId] = useState("");
   const [unitPrice, setUnitPrice] = useState("");
+  const [dismissedCompletionId, setDismissedCompletionId] = useState<string | null>(null);
 
   const varieties = useMemo(() => Array.from(new Map(options.inventory.map((row) => [row.varietyId, { id: row.varietyId, name: row.varietyName }])).values()), [options.inventory]);
   const sizes = options.inventory.filter((row) => row.varietyId === varietyId);
@@ -36,8 +46,9 @@ export function ShippingSaleForm({ options, defaultDate }: { options: ShippingFo
   }
 
   const errors = state && !state.ok && "fieldErrors" in state ? state.fieldErrors : undefined;
+  const completionOpen = Boolean(state?.ok && state.id !== dismissedCompletionId);
+
   return <form action={action} className="space-y-4">
-    {state?.ok && <div role="status" className="rounded-xl bg-primary/10 px-4 py-3 text-sm font-bold text-kiwi-ink">出荷・販売を登録し、在庫を引き当てました。</div>}
     {state && !state.ok && "formError" in state && <div role="alert" className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{state.formError}</div>}
 
     <Field label="取引先" htmlFor="partner" error={errors?.businessPartnerId?.[0]}><NativeSelect id="partner" name="businessPartnerId" value={partnerId} onChange={(e) => { setPartnerId(e.target.value); setVarietyId(""); setSizeId(""); setPackageId(""); setUnitPrice(""); }} required><option value="">取引先を選択</option>{options.partners.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</NativeSelect></Field>
@@ -56,5 +67,30 @@ export function ShippingSaleForm({ options, defaultDate }: { options: ShippingFo
     </div>
     <Field label="備考（任意）" htmlFor="notes" error={errors?.notes?.[0]}><textarea id="notes" name="notes" maxLength={500} placeholder="配送方法や申し送りなど" className={textareaClass} /></Field>
     <Button type="submit" disabled={!stock || pending} className="mt-3 h-13 w-full rounded-full text-[15px] font-bold shadow-[0_8px_20px_-6px_rgba(66,160,71,0.5)]">{pending ? "登録中…" : "出荷・販売を登録する"}</Button>
+
+    <Dialog
+      open={completionOpen}
+      onOpenChange={(open) => {
+        if (!open && state?.ok) setDismissedCompletionId(state.id);
+      }}
+    >
+      <DialogContent showCloseButton={false} className="gap-5 rounded-3xl p-6 sm:max-w-md">
+        <DialogHeader className="items-center text-center">
+          <div className="mb-1 grid size-14 place-items-center rounded-full bg-primary/12 text-2xl text-primary">✓</div>
+          <DialogTitle className="text-xl font-bold text-kiwi-ink">出荷・販売を登録しました</DialogTitle>
+          <DialogDescription>在庫を引き当てました。次の操作を選んでください。</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Button type="button" variant="outline" onClick={() => window.location.reload()} className="h-12 rounded-xl bg-white font-bold">
+            <RotateCcw className="size-4" />続けて入力
+          </Button>
+          {state?.ok && (
+            <Button render={<Link href={`/dashboard/delivery-notes/${state.id}`} />} className="h-12 rounded-xl font-bold">
+              <FileText className="size-4" />納品書を作成
+            </Button>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   </form>;
 }
