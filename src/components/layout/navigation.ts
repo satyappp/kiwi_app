@@ -39,7 +39,7 @@ export const dashboardNavigation: NavigationSection[] = [
   {
     label: "帳票",
     items: [
-      { label: "納品書作成", icon: FileText, isPending: true },
+      { label: "納品書作成", href: "/dashboard/delivery-notes", icon: FileText },
       { label: "CSV出力", icon: Package, isPending: true },
     ],
   },
@@ -62,7 +62,7 @@ export const mobileNavigation: NavigationSection[] = [
       { label: "追熟を開始", href: "/ripening/new", icon: Timer },
       { label: "在庫確認", href: "/inventory", icon: Snowflake },
       { label: "出荷処理", href: "/shipping/new", icon: Truck },
-      { label: "納品書作成", icon: FileText, isPending: true },
+      { label: "納品書作成", href: "/dashboard/delivery-notes", icon: FileText },
     ],
   },
   {
