@@ -365,6 +365,6 @@ export async function getHarvestDashboardData(
       weightKg,
     })),
     recentHarvests,
-    nextAction: attentionLogs[0] ?? null,
+    nextActions: attentionLogs,
   };
 }

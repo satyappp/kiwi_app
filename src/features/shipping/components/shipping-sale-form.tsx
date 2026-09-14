@@ -23,6 +23,7 @@ export function ShippingSaleForm({ options, defaultDate }: { options: ShippingFo
   const [sizeId, setSizeId] = useState("");
   const [packageId, setPackageId] = useState("");
   const [unitPrice, setUnitPrice] = useState("");
+  const [isDatabasePrice, setIsDatabasePrice] = useState(false);
 
   const varieties = useMemo(() => Array.from(new Map(options.inventory.map((row) => [row.varietyId, { id: row.varietyId, name: row.varietyName }])).values()), [options.inventory]);
   const sizes = options.inventory.filter((row) => row.varietyId === varietyId);
@@ -33,6 +34,30 @@ export function ShippingSaleForm({ options, defaultDate }: { options: ShippingFo
     setPackageId(id);
     const selected = packages.find((item) => item.id === id);
     setUnitPrice(selected?.unitPriceYenPerKg == null ? "" : String(selected.unitPriceYenPerKg));
+    setIsDatabasePrice(selected?.unitPriceYenPerKg != null);
+  }
+
+  function changeSize(id: string) {
+    setSizeId(id);
+    const matchingPackages = options.packages.filter(
+      (item) => item.varietyId === varietyId && item.sizeStandardId === id,
+    );
+    const pricedPackages = matchingPackages.filter(
+      (item) => item.unitPriceYenPerKg != null,
+    );
+    const prices = [...new Set(pricedPackages.map((item) => item.unitPriceYenPerKg))];
+
+    if (matchingPackages.length === 1) {
+      const onlyPackage = matchingPackages[0];
+      setPackageId(onlyPackage.id);
+      setUnitPrice(onlyPackage.unitPriceYenPerKg == null ? "" : String(onlyPackage.unitPriceYenPerKg));
+      setIsDatabasePrice(onlyPackage.unitPriceYenPerKg != null);
+      return;
+    }
+
+    setPackageId("");
+    setUnitPrice(prices.length === 1 && prices[0] != null ? String(prices[0]) : "");
+    setIsDatabasePrice(prices.length === 1);
   }
 
   const errors = state && !state.ok && "fieldErrors" in state ? state.fieldErrors : undefined;
@@ -40,14 +65,14 @@ export function ShippingSaleForm({ options, defaultDate }: { options: ShippingFo
     {state?.ok && <div role="status" className="rounded-xl bg-primary/10 px-4 py-3 text-sm font-bold text-kiwi-ink">出荷・販売を登録し、在庫を引き当てました。</div>}
     {state && !state.ok && "formError" in state && <div role="alert" className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{state.formError}</div>}
 
-    <Field label="取引先" htmlFor="partner" error={errors?.businessPartnerId?.[0]}><NativeSelect id="partner" name="businessPartnerId" value={partnerId} onChange={(e) => { setPartnerId(e.target.value); setVarietyId(""); setSizeId(""); setPackageId(""); setUnitPrice(""); }} required><option value="">取引先を選択</option>{options.partners.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</NativeSelect></Field>
-    <Field label="品種" htmlFor="variety" error={errors?.varietyId?.[0]}><NativeSelect id="variety" name="varietyId" value={varietyId} disabled={!partnerId} onChange={(e) => { setVarietyId(e.target.value); setSizeId(""); setPackageId(""); setUnitPrice(""); }} required><option value="">品種を選択</option>{varieties.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</NativeSelect></Field>
-    <Field label="サイズ" htmlFor="size" error={errors?.sizeStandardId?.[0]}><NativeSelect id="size" name="sizeStandardId" value={sizeId} disabled={!varietyId} onChange={(e) => { setSizeId(e.target.value); setPackageId(""); setUnitPrice(""); }} required><option value="">在庫があるサイズを選択</option>{sizes.map((item) => <option key={item.sizeStandardId} value={item.sizeStandardId}>{item.sizeCode}（{item.availableWeightKg.toLocaleString("ja-JP")} kg）</option>)}</NativeSelect></Field>
+    <Field label="取引先" htmlFor="partner" error={errors?.businessPartnerId?.[0]}><NativeSelect id="partner" name="businessPartnerId" value={partnerId} onChange={(e) => { setPartnerId(e.target.value); setVarietyId(""); setSizeId(""); setPackageId(""); setUnitPrice(""); setIsDatabasePrice(false); }} required><option value="">取引先を選択</option>{options.partners.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</NativeSelect></Field>
+    <Field label="品種" htmlFor="variety" error={errors?.varietyId?.[0]}><NativeSelect id="variety" name="varietyId" value={varietyId} disabled={!partnerId} onChange={(e) => { setVarietyId(e.target.value); setSizeId(""); setPackageId(""); setUnitPrice(""); setIsDatabasePrice(false); }} required><option value="">品種を選択</option>{varieties.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</NativeSelect></Field>
+    <Field label="サイズ" htmlFor="size" error={errors?.sizeStandardId?.[0]}><NativeSelect id="size" name="sizeStandardId" value={sizeId} disabled={!varietyId} onChange={(e) => changeSize(e.target.value)} required><option value="">在庫があるサイズを選択</option>{sizes.map((item) => <option key={item.sizeStandardId} value={item.sizeStandardId}>{item.sizeCode}（{item.availableWeightKg.toLocaleString("ja-JP")} kg）</option>)}</NativeSelect></Field>
 
     <Field label="納品パッケージ（任意）" htmlFor="package"><NativeSelect id="package" name="deliveryPackageId" value={packageId} disabled={!sizeId} onChange={(e) => changePackage(e.target.value)}><option value="">選択しない</option>{packages.map((item) => <option key={item.id} value={item.id}>{item.format ?? item.name}</option>)}</NativeSelect></Field>
     <div className="grid grid-cols-2 gap-3">
       <Field label="数量（kg）" htmlFor="quantity" error={errors?.quantityKg?.[0]}><Input id="quantity" name="quantityKg" type="number" min="0.01" max={stock?.availableWeightKg} step="0.01" disabled={!sizeId} placeholder={stock ? `上限 ${stock.availableWeightKg}` : "0"} required /></Field>
-      <Field label="単価（円/kg）" htmlFor="unit-price" error={errors?.unitPriceYenPerKg?.[0]}><Input id="unit-price" name="unitPriceYenPerKg" type="number" min="0" step="0.01" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} disabled={!sizeId} required /></Field>
+      <Field label="単価（円/kg）" htmlFor="unit-price" error={errors?.unitPriceYenPerKg?.[0]}><Input id="unit-price" name="unitPriceYenPerKg" type="number" min="0" step="0.01" value={unitPrice} onChange={(e) => { setUnitPrice(e.target.value); setIsDatabasePrice(false); }} disabled={!sizeId} required />{isDatabasePrice && <p className="text-xs font-medium text-kiwi">DBの登録単価を設定しました</p>}</Field>
     </div>
     {stock && <p className="rounded-xl bg-primary/10 px-4 py-3 text-sm text-kiwi-ink">現在の出荷可能在庫：<strong>{stock.availableWeightKg.toLocaleString("ja-JP")} kg</strong></p>}
     <div className="grid grid-cols-2 gap-3">

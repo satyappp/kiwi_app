@@ -48,6 +48,7 @@ src/
          page.tsx            "/dashboard"         → live harvest overview
          harvest/page.tsx    "/dashboard/harvest" → harvest table
          inventory/page.tsx  "/dashboard/inventory" → inventory browser
+         shipping/page.tsx   "/dashboard/shipping" → shipping and sales table
   components/
     ui/                     shadcn primitives — design-system, feature-agnostic
     layout/                 shared chrome: <KiwiBackdrop/>, <BackButton/>, nav
