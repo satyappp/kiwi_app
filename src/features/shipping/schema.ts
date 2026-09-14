@@ -24,3 +24,22 @@ export type ShippingFormOptions = {
   inventory: { varietyId: string; varietyName: string; sizeStandardId: string; sizeCode: string; availableWeightKg: number }[];
   packages: { id: string; varietyId: string; sizeStandardId: string; name: string; format: string | null; unitPriceYenPerKg: number | null }[];
 };
+
+export type ShippingSaleStatus = "reserved" | "shipped" | "cancelled";
+
+export type ShippingSaleRow = {
+  id: string;
+  partnerName: string;
+  varietyName: string;
+  sizeCode: string;
+  packageName: string | null;
+  quantityKg: number;
+  unitPriceYenPerKg: number;
+  totalPriceYen: number;
+  shippingDate: string;
+  deliveryDate: string;
+  notes: string | null;
+  createdAt: string;
+  staffName: string;
+  status: ShippingSaleStatus;
+};

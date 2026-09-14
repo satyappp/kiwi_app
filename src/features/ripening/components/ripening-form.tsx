@@ -190,16 +190,16 @@ function resolveRipeningDefaults(
 function defaultNotice(source: DefaultSource, hasCompleteMaster: boolean) {
   if (source === "master") {
     return hasCompleteMaster
-      ? "追熟マスタの値を反映しました。使用前に条件をご確認ください。"
-      : "追熟マスタの設定済み項目を反映しました。不足項目を入力すると標準値として保存できます。";
+      ? "月・品種別の標準条件を自動設定しました。必要な場合だけ変更できます。"
+      : "標準条件の設定済み項目を反映しました。不足項目だけ確認してください。";
   }
   if (source === "master-and-recent") {
-    return "追熟マスタの未設定項目を、この品種の直近実績で補いました。使用前に条件をご確認ください。";
+    return "標準条件の不足項目を、この品種の直近実績で自動補完しました。";
   }
   if (source === "recent") {
-    return "追熟マスタが未設定のため、この品種の直近実績を反映しました。使用前に条件をご確認ください。";
+    return "標準条件がないため、この品種の直近実績を自動設定しました。";
   }
-  return "標準条件と直近実績がありません。今回使用する条件を入力してください。";
+  return "自動設定できる条件がありません。「条件を設定」から入力してください。";
 }
 
 export function RipeningForm({
@@ -223,8 +223,11 @@ export function RipeningForm({
   const [isCompleteOpen, setIsCompleteOpen] = useState(false);
   const [startDate, setStartDate] = useState(defaultDate);
   const [startTime, setStartTime] = useState(defaultTime);
+  const recentLocationId = initialDefaults.recentSetting?.locationId;
   const [locationChoice, setLocationChoice] = useState(
-    locations.length === 0
+    recentLocationId && locations.some((location) => location.id === recentLocationId)
+      ? recentLocationId
+      : locations.length === 0
       ? NEW_LOCATION
       : locations.length === 1
         ? locations[0].id
@@ -255,6 +258,11 @@ export function RipeningForm({
     !initialDefaults.hasCompleteMaster,
   );
   const [notes, setNotes] = useState("");
+  const [isConditionsOpen, setIsConditionsOpen] = useState(
+    initialDefaults.ethyleneDurationHours == null ||
+      initialDefaults.restingDurationHours == null,
+  );
+  const [isMetaOpen, setIsMetaOpen] = useState(false);
 
   async function submitRipening(
     previousState: StartRipeningResult | null,
@@ -280,7 +288,19 @@ export function RipeningForm({
       setSaveAsStandard(true);
       setNewLocationName("");
       setNotes("");
+      setIsConditionsOpen(false);
+      setIsMetaOpen(false);
       setIsCompleteOpen(true);
+    } else if ("fieldErrors" in result) {
+      if (
+        result.fieldErrors.ethyleneTemperatureC ||
+        result.fieldErrors.ethyleneProcessingHours ||
+        result.fieldErrors.restingTemperatureC ||
+        result.fieldErrors.restingDurationHours
+      ) {
+        setIsConditionsOpen(true);
+      }
+      if (result.fieldErrors.notes) setIsMetaOpen(true);
     }
     return result;
   }
@@ -324,7 +344,11 @@ export function RipeningForm({
         !selectedSourceIds.has(source.id),
     );
 
-  function applyDefaults(sourceId: string, date: string) {
+  function applyDefaults(
+    sourceId: string,
+    date: string,
+    applyRecentLocation = false,
+  ) {
     const source = sortingSources.find((candidate) => candidate.id === sourceId);
     const defaults = resolveRipeningDefaults(
       source,
@@ -338,6 +362,19 @@ export function RipeningForm({
     setRestingTemperatureC(defaults.restingTemperatureC?.toString() ?? "");
     setRestingDurationHours(defaults.restingDurationHours?.toString() ?? "");
     setSaveAsStandard(!defaults.hasCompleteMaster);
+    if (
+      defaults.ethyleneDurationHours == null ||
+      defaults.restingDurationHours == null
+    ) {
+      setIsConditionsOpen(true);
+    }
+    if (
+      applyRecentLocation &&
+      defaults.recentSetting?.locationId &&
+      locations.some((location) => location.id === defaults.recentSetting?.locationId)
+    ) {
+      setLocationChoice(defaults.recentSetting.locationId);
+    }
   }
 
   function handleStartDateChange(nextDate: string) {
@@ -359,7 +396,7 @@ export function RipeningForm({
       );
       return index === 0 ? [next[0]] : next;
     });
-    if (index === 0) applyDefaults(sortingLogId, startDate);
+    if (index === 0) applyDefaults(sortingLogId, startDate, true);
   }
 
   function handleWeightChange(index: number, weightKg: string) {
@@ -459,11 +496,10 @@ export function RipeningForm({
         </p>
       )}
 
-      <Field label="担当者" htmlFor="staff-display">
-        <div id="staff-display" className="flex h-12 items-center rounded-xl border border-input bg-muted/60 px-3.5 text-[15px] text-kiwi-ink shadow-sm">
-          {currentStaff?.name ?? "確認できません"}
-        </div>
-      </Field>
+      <div className="flex items-center justify-between rounded-xl bg-white/65 px-4 py-3 text-sm">
+        <span className="text-muted-foreground">担当者</span>
+        <strong className="text-kiwi-ink">{currentStaff?.name ?? "確認できません"}</strong>
+      </div>
 
       <div className="grid grid-cols-[1fr_0.82fr] gap-3">
         <Field label="開始日" htmlFor="start-date" error={fieldErrors?.startDate?.[0]}>
@@ -643,7 +679,28 @@ export function RipeningForm({
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <details
+        open={isConditionsOpen}
+        onToggle={(event) => setIsConditionsOpen(event.currentTarget.open)}
+        className="group rounded-2xl border border-primary/20 bg-white/80 shadow-sm"
+      >
+        <summary className="cursor-pointer list-none px-4 py-3.5">
+          <span className="flex items-center justify-between gap-3">
+            <span>
+              <span className="block text-sm font-bold text-kiwi-ink">追熟条件</span>
+              <span className="mt-1 block text-xs leading-5 text-muted-foreground">
+                エチレン {ethyleneTemperatureC || "-"}℃・{ethyleneProcessingHours || "-"}時間
+                ／ 保管 {restingTemperatureC || "-"}℃・{restingDurationHours || "-"}時間
+              </span>
+            </span>
+            <span className="shrink-0 rounded-full border bg-white px-2.5 py-1 text-xs font-bold text-kiwi-ink">
+              条件を変更
+            </span>
+          </span>
+        </summary>
+
+        <div className="space-y-4 border-t px-4 py-4">
+          <div className="grid grid-cols-2 gap-3">
         <Field label="エチレン温度" htmlFor="ethylene-temperature" optional={!saveAsStandard} error={fieldErrors?.ethyleneTemperatureC?.[0]}>
           <div className="relative">
             <Input
@@ -675,7 +732,7 @@ export function RipeningForm({
             <span className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-sm text-muted-foreground">時間</span>
           </div>
         </Field>
-        <Field label="エチレン後の保管温度" htmlFor="resting-temperature" optional={!saveAsStandard} error={fieldErrors?.restingTemperatureC?.[0]}>
+        <Field label="保管温度" htmlFor="resting-temperature" optional={!saveAsStandard} error={fieldErrors?.restingTemperatureC?.[0]}>
           <div className="relative">
             <Input
               id="resting-temperature"
@@ -690,7 +747,7 @@ export function RipeningForm({
             <span className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-sm text-muted-foreground">℃</span>
           </div>
         </Field>
-        <Field label="エチレン後の保管時間" htmlFor="resting-hours" error={fieldErrors?.restingDurationHours?.[0]}>
+        <Field label="保管時間" htmlFor="resting-hours" error={fieldErrors?.restingDurationHours?.[0]}>
           <div className="relative">
             <Input
               id="resting-hours"
@@ -706,69 +763,74 @@ export function RipeningForm({
             <span className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-sm text-muted-foreground">時間</span>
           </div>
         </Field>
-      </div>
-
-      {timeline && (
-        <section className="rounded-2xl bg-kiwi-ink p-4 text-white shadow-sm">
-          <h3 className="text-xs font-bold tracking-[0.1em] text-white/65">予定タイムライン</h3>
-          <div className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-2.5 text-sm">
-            <span className="text-white/65">エチレン開始</span>
-            <time className="text-right font-bold tabular-nums">{formatDateTime(timeline.start)}</time>
-            <span className="text-white/65">エチレン終了</span>
-            <time className="text-right font-bold tabular-nums text-kiwi-amber">{formatDateTime(timeline.ethyleneEnd)}</time>
-            <span className="text-white/65">保管開始</span>
-            <time className="text-right font-bold tabular-nums">{formatDateTime(timeline.ethyleneEnd)}</time>
-            <span className="text-white/65">出荷可能</span>
-            <time className="text-right font-bold tabular-nums text-kiwi-pale">{formatDateTime(timeline.shippable)}</time>
           </div>
-        </section>
-      )}
 
-      <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 shadow-sm">
-        <input
-          type="checkbox"
-          name="saveAsStandard"
-          checked={saveAsStandard}
-          onChange={(event) => setSaveAsStandard(event.target.checked)}
-          className="size-5 rounded border-input accent-primary"
-        />
-        <span>
-          <span className="block text-sm font-bold text-kiwi-ink">
-            今回の条件を標準値として保存
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3">
+            <input
+              type="checkbox"
+              name="saveAsStandard"
+              checked={saveAsStandard}
+              onChange={(event) => setSaveAsStandard(event.target.checked)}
+              className="size-5 rounded border-input accent-primary"
+            />
+            <span>
+              <span className="block text-sm font-bold text-kiwi-ink">
+                今回の条件を標準値として保存
+              </span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                {firstSource
+                  ? `${startDate.slice(5, 7).replace(/^0/, "")}月・${firstSource.varietyName}の次回入力に使用します`
+                  : "月と品種ごとの次回入力に使用します"}
+              </span>
+            </span>
+          </label>
+        </div>
+      </details>
+
+      <details
+        open={isMetaOpen}
+        onToggle={(event) => setIsMetaOpen(event.currentTarget.open)}
+        className="group rounded-2xl border border-input bg-white/70 shadow-sm"
+      >
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5">
+          <span>
+            <span className="block text-sm font-bold text-kiwi-ink">通知・メモ</span>
+            <span className="mt-1 block text-xs text-muted-foreground">
+              通知 {notificationsEnabled ? "ON" : "OFF"}{notes.trim() ? "・メモあり" : ""}
+            </span>
           </span>
-          <span className="mt-0.5 block text-xs text-muted-foreground">
-            {firstSource
-              ? `${startDate.slice(5, 7).replace(/^0/, "")}月・${firstSource.varietyName}の次回入力に使用します`
-              : "月と品種ごとの次回入力に使用します"}
+          <span className="rounded-full border bg-white px-2.5 py-1 text-xs font-bold text-kiwi-ink">
+            設定
           </span>
-        </span>
-      </label>
+        </summary>
+        <div className="space-y-4 border-t px-4 py-4">
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-input bg-white/80 px-4 py-3">
+            <input
+              type="checkbox"
+              name="notificationsEnabled"
+              checked={notificationsEnabled}
+              onChange={(event) => setNotificationsEnabled(event.target.checked)}
+              className="size-5 rounded border-input accent-primary"
+            />
+            <span>
+              <span className="block text-sm font-bold text-kiwi-ink">確認時刻を通知対象にする</span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">エチレン終了と出荷可能時刻を管理します</span>
+            </span>
+          </label>
 
-      <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-input bg-white/80 px-4 py-3 shadow-sm">
-        <input
-          type="checkbox"
-          name="notificationsEnabled"
-          checked={notificationsEnabled}
-          onChange={(event) => setNotificationsEnabled(event.target.checked)}
-          className="size-5 rounded border-input accent-primary"
-        />
-        <span>
-          <span className="block text-sm font-bold text-kiwi-ink">確認時刻を通知対象にする</span>
-          <span className="mt-0.5 block text-xs text-muted-foreground">エチレン終了と出荷可能時刻を管理します</span>
-        </span>
-      </label>
-
-      <Field label="メモ" htmlFor="ripening-notes" optional error={fieldErrors?.notes?.[0]}>
-        <textarea
-          id="ripening-notes"
-          name="notes"
-          value={notes}
-          onChange={(event) => setNotes(event.target.value)}
-          maxLength={500}
-          placeholder="申し送りなどを入力"
-          className={textareaClass}
-        />
-      </Field>
+          <Field label="メモ" htmlFor="ripening-notes" optional error={fieldErrors?.notes?.[0]}>
+            <textarea
+              id="ripening-notes"
+              name="notes"
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              maxLength={500}
+              placeholder="申し送りなどを入力"
+              className={textareaClass}
+            />
+          </Field>
+        </div>
+      </details>
 
       <Button
         type="submit"
