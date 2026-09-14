@@ -29,6 +29,7 @@ function inputFromFormData(formData: FormData) {
   const weights = formData.getAll("itemWeightKg");
 
   return {
+    staffName: formData.get("staffName"),
     startDate: formData.get("startDate"),
     startTime: formData.get("startTime"),
     locationId: formData.get("locationId"),
@@ -127,6 +128,7 @@ export async function startRipening(
     };
   }
 
+  // 画面表示後に別の登録で残量が変わる可能性があるため、登録直前にも最新値で検証する。
   for (const item of input.items) {
     const availableWeightKg = Number(
       sourceById.get(item.sortingLogId)?.available_weight_kg,
@@ -134,7 +136,9 @@ export async function startRipening(
     if (!Number.isFinite(availableWeightKg) || item.weightKg > availableWeightKg) {
       return {
         ok: false,
-        formError: "入力した量が最新の選果残量を超えています。量を確認してください。",
+        fieldErrors: {
+          items: ["入力した量が最新の選果残量を超えています。量を確認してください。"],
+        },
       };
     }
   }
@@ -145,6 +149,21 @@ export async function startRipening(
       ok: false,
       fieldErrors: {
         locationId: ["追熟場所を確認できません。別の場所を選択してください"],
+      },
+    };
+  }
+
+  // 入力した担当者名はログインユーザーの表示名へ保存し、次回入力の初期値にも反映する。
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update({ display_name: input.staffName })
+    .eq("id", claimsData.claims.sub);
+
+  if (profileError) {
+    return {
+      ok: false,
+      fieldErrors: {
+        staffName: ["担当者名を更新できませんでした。もう一度お試しください"],
       },
     };
   }

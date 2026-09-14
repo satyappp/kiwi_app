@@ -3,7 +3,16 @@ import { Input as InputPrimitive } from "@base-ui/react/input"
 
 import { cn } from "@/lib/utils"
 
-function Input({ className, type, ...props }: React.ComponentProps<"input">) {
+// Base UI の制御入力は onValueChange を使うため、InputPrimitive本来のPropsを公開する。
+// これにより入力欄の値とフォームが保持する値のずれを防ぐ。
+type InputProps = Omit<
+  React.ComponentProps<typeof InputPrimitive>,
+  "className"
+> & {
+  className?: string
+}
+
+function Input({ className, type, ...props }: InputProps) {
   return (
     <InputPrimitive
       type={type}

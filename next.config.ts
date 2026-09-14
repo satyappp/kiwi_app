@@ -1,8 +1,16 @@
 import type { NextConfig } from "next";
+import { networkInterfaces } from "node:os";
+
+// 開発端末のIPは接続先のWi-Fi等で変わるため、現在のLANアドレスを起動時に許可する。
+// 未許可だと端末ではHTMLだけが表示され、入力更新や登録処理のJSが動かない。
+const lanDevOrigins = Object.values(networkInterfaces())
+  .flatMap((addresses) => addresses ?? [])
+  .filter((address) => address.family === "IPv4" && !address.internal)
+  .map((address) => address.address);
 
 const nextConfig: NextConfig = {
-  // Allow phones and tablets on the current LAN to load dev-only assets/HMR.
-  allowedDevOrigins: ["192.168.102.59"],
+  // スマートフォンやタブレットから開発用アセットとHMRを読み込めるようにする。
+  allowedDevOrigins: ["127.0.0.1", ...lanDevOrigins],
   async headers() {
     return [
       {

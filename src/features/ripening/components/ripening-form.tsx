@@ -42,6 +42,8 @@ type AllocationDraft = {
   weightKg: string;
 };
 
+type AllocationErrors = Record<number, string | undefined>;
+
 const NEW_LOCATION = "__new__";
 const inputClass =
   "h-12 w-full rounded-xl border border-input bg-card px-3.5 text-[15px] shadow-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40";
@@ -77,15 +79,6 @@ function Field({
   );
 }
 
-function ConfirmationRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="grid grid-cols-[5.5rem_1fr] gap-3 border-b border-border/70 py-2.5 last:border-0">
-      <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
-      <dd className="text-sm font-medium break-words text-kiwi-ink">{value}</dd>
-    </div>
-  );
-}
-
 function formatWeight(value: number) {
   return value.toLocaleString("ja-JP", { maximumFractionDigits: 2 });
 }
@@ -104,32 +97,29 @@ function formatDateTime(value: Date) {
   }).format(value);
 }
 
-function calculateTimeline(
-  startDate: string,
-  startTime: string,
-  ethyleneHours: string,
-  restingHours: string,
-) {
-  const start = new Date(`${startDate}T${startTime}:00+09:00`);
-  const ethylene = Number(ethyleneHours);
-  const resting = Number(restingHours);
-  if (
-    Number.isNaN(start.getTime()) ||
-    !Number.isFinite(ethylene) ||
-    ethylene <= 0 ||
-    !Number.isFinite(resting) ||
-    resting < 0
-  ) {
-    return null;
-  }
-
-  const ethyleneEnd = new Date(start.getTime() + ethylene * 60 * 60 * 1000);
-  const shippable = new Date(ethyleneEnd.getTime() + resting * 60 * 60 * 1000);
-  return { start, ethyleneEnd, shippable };
-}
-
 function sourceLabel(source: SortingRipeningOption) {
   return `${formatDate(source.sortingDate)}・${source.title}（残 ${formatWeight(source.availableWeightKg)} kg）`;
+}
+
+function getAllocationOverageError(
+  allocation: AllocationDraft,
+  sortingSources: SortingRipeningOption[],
+) {
+  // 選択時に取得した使用可能量と比較し、入力した時点で具体的な上限を伝える。
+  const source = sortingSources.find(
+    (candidate) => candidate.id === allocation.sortingLogId,
+  );
+  const weightKg = Number.parseFloat(allocation.weightKg);
+
+  if (
+    !source ||
+    !Number.isFinite(weightKg) ||
+    weightKg <= source.availableWeightKg
+  ) {
+    return undefined;
+  }
+
+  return `使用可能な${formatWeight(source.availableWeightKg)} kgを超えています。`;
 }
 
 type DefaultSource = "master" | "master-and-recent" | "recent" | "none";
@@ -187,21 +177,6 @@ function resolveRipeningDefaults(
   };
 }
 
-function defaultNotice(source: DefaultSource, hasCompleteMaster: boolean) {
-  if (source === "master") {
-    return hasCompleteMaster
-      ? "月・品種別の標準条件を自動設定しました。必要な場合だけ変更できます。"
-      : "標準条件の設定済み項目を反映しました。不足項目だけ確認してください。";
-  }
-  if (source === "master-and-recent") {
-    return "標準条件の不足項目を、この品種の直近実績で自動補完しました。";
-  }
-  if (source === "recent") {
-    return "標準条件がないため、この品種の直近実績を自動設定しました。";
-  }
-  return "自動設定できる条件がありません。「条件を設定」から入力してください。";
-}
-
 export function RipeningForm({
   currentStaff,
   options,
@@ -221,6 +196,7 @@ export function RipeningForm({
   const isSubmissionConfirmed = useRef(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isCompleteOpen, setIsCompleteOpen] = useState(false);
+  const [staffName, setStaffName] = useState(currentStaff?.name ?? "");
   const [startDate, setStartDate] = useState(defaultDate);
   const [startTime, setStartTime] = useState(defaultTime);
   const recentLocationId = initialDefaults.recentSetting?.locationId;
@@ -241,6 +217,7 @@ export function RipeningForm({
       weightKg: initialSource?.availableWeightKg.toString() ?? "",
     },
   ]);
+  const [allocationErrors, setAllocationErrors] = useState<AllocationErrors>({});
   const [ethyleneTemperatureC, setEthyleneTemperatureC] = useState(
     initialDefaults.ethyleneTemperatureC?.toString() ?? "",
   );
@@ -258,10 +235,6 @@ export function RipeningForm({
     !initialDefaults.hasCompleteMaster,
   );
   const [notes, setNotes] = useState("");
-  const [isConditionsOpen, setIsConditionsOpen] = useState(
-    initialDefaults.ethyleneDurationHours == null ||
-      initialDefaults.restingDurationHours == null,
-  );
   const [isMetaOpen, setIsMetaOpen] = useState(false);
 
   async function submitRipening(
@@ -273,6 +246,7 @@ export function RipeningForm({
       formRef.current?.reset();
       setStartDate(defaultDate);
       setStartTime(defaultTime);
+      setStaffName((current) => current.trim());
       setAllocations([
         {
           key: nextAllocationKey.current++,
@@ -280,6 +254,7 @@ export function RipeningForm({
           weightKg: "",
         },
       ]);
+      setAllocationErrors({});
       setEthyleneTemperatureC("");
       setEthyleneProcessingHours("");
       setRestingTemperatureC("");
@@ -288,18 +263,9 @@ export function RipeningForm({
       setSaveAsStandard(true);
       setNewLocationName("");
       setNotes("");
-      setIsConditionsOpen(false);
       setIsMetaOpen(false);
       setIsCompleteOpen(true);
     } else if ("fieldErrors" in result) {
-      if (
-        result.fieldErrors.ethyleneTemperatureC ||
-        result.fieldErrors.ethyleneProcessingHours ||
-        result.fieldErrors.restingTemperatureC ||
-        result.fieldErrors.restingDurationHours
-      ) {
-        setIsConditionsOpen(true);
-      }
       if (result.fieldErrors.notes) setIsMetaOpen(true);
     }
     return result;
@@ -327,15 +293,9 @@ export function RipeningForm({
     allocations.map((allocation) => allocation.sortingLogId).filter(Boolean),
   );
   const totalWeightKg = allocations.reduce((total, allocation) => {
-    const value = Number(allocation.weightKg);
+    const value = Number.parseFloat(allocation.weightKg);
     return total + (Number.isFinite(value) ? value : 0);
   }, 0);
-  const timeline = calculateTimeline(
-    startDate,
-    startTime,
-    ethyleneProcessingHours,
-    restingDurationHours,
-  );
   const canAddAllocation =
     firstSource &&
     sortingSources.some(
@@ -363,12 +323,6 @@ export function RipeningForm({
     setRestingDurationHours(defaults.restingDurationHours?.toString() ?? "");
     setSaveAsStandard(!defaults.hasCompleteMaster);
     if (
-      defaults.ethyleneDurationHours == null ||
-      defaults.restingDurationHours == null
-    ) {
-      setIsConditionsOpen(true);
-    }
-    if (
       applyRecentLocation &&
       defaults.recentSetting?.locationId &&
       locations.some((location) => location.id === defaults.recentSetting?.locationId)
@@ -384,6 +338,7 @@ export function RipeningForm({
 
   function handleSourceChange(index: number, sortingLogId: string) {
     const source = sortingSources.find((candidate) => candidate.id === sortingLogId);
+    const allocationKey = allocations[index]?.key;
     setAllocations((current) => {
       const next = current.map((allocation, allocationIndex) =>
         allocationIndex === index
@@ -396,15 +351,37 @@ export function RipeningForm({
       );
       return index === 0 ? [next[0]] : next;
     });
+    if (index === 0) {
+      setAllocationErrors({});
+    } else if (allocationKey != null) {
+      setAllocationErrors((current) => ({
+        ...current,
+        [allocationKey]: undefined,
+      }));
+    }
     if (index === 0) applyDefaults(sortingLogId, startDate, true);
   }
 
   function handleWeightChange(index: number, weightKg: string) {
+    const currentAllocation = allocations[index];
+    const nextAllocation = currentAllocation
+      ? { ...currentAllocation, weightKg }
+      : undefined;
     setAllocations((current) =>
       current.map((allocation, allocationIndex) =>
         allocationIndex === index ? { ...allocation, weightKg } : allocation,
       ),
     );
+    // 入力のたびに判定し、超過した瞬間の表示と修正した瞬間の解除を同じ処理で行う。
+    if (nextAllocation) {
+      setAllocationErrors((current) => ({
+        ...current,
+        [nextAllocation.key]: getAllocationOverageError(
+          nextAllocation,
+          sortingSources,
+        ),
+      }));
+    }
   }
 
   function addAllocation() {
@@ -419,9 +396,17 @@ export function RipeningForm({
   }
 
   function removeAllocation(index: number) {
+    const removedKey = allocations[index]?.key;
     setAllocations((current) =>
       current.filter((_, allocationIndex) => allocationIndex !== index),
     );
+    if (removedKey != null) {
+      setAllocationErrors((current) => {
+        const next = { ...current };
+        delete next[removedKey];
+        return next;
+      });
+    }
   }
 
   function sourcesForAllocation(index: number) {
@@ -440,7 +425,20 @@ export function RipeningForm({
       return;
     }
 
+    const nextAllocationErrors = Object.fromEntries(
+      allocations.map((allocation) => [
+        allocation.key,
+        getAllocationOverageError(allocation, sortingSources),
+      ]),
+    ) as AllocationErrors;
+    if (Object.values(nextAllocationErrors).some(Boolean)) {
+      event.preventDefault();
+      setAllocationErrors(nextAllocationErrors);
+      return;
+    }
+
     const parsed = ripeningInputSchema.safeParse({
+      staffName,
       startDate,
       startTime,
       locationId: locationChoice === NEW_LOCATION ? "" : locationChoice,
@@ -496,10 +494,18 @@ export function RipeningForm({
         </p>
       )}
 
-      <div className="flex items-center justify-between rounded-xl bg-white/65 px-4 py-3 text-sm">
-        <span className="text-muted-foreground">担当者</span>
-        <strong className="text-kiwi-ink">{currentStaff?.name ?? "確認できません"}</strong>
-      </div>
+      <Field label="担当者" htmlFor="staff-name" error={fieldErrors?.staffName?.[0]}>
+        <Input
+          id="staff-name"
+          name="staffName"
+          value={staffName}
+          onValueChange={setStaffName}
+          maxLength={80}
+          required
+          aria-invalid={Boolean(fieldErrors?.staffName)}
+          className={inputClass}
+        />
+      </Field>
 
       <div className="grid grid-cols-[1fr_0.82fr] gap-3">
         <Field label="開始日" htmlFor="start-date" error={fieldErrors?.startDate?.[0]}>
@@ -508,7 +514,7 @@ export function RipeningForm({
             name="startDate"
             type="date"
             value={startDate}
-            onChange={(event) => handleStartDateChange(event.target.value)}
+            onValueChange={handleStartDateChange}
             required
             className={inputClass}
           />
@@ -519,7 +525,7 @@ export function RipeningForm({
             name="startTime"
             type="time"
             value={startTime}
-            onChange={(event) => setStartTime(event.target.value)}
+            onValueChange={setStartTime}
             required
             className={inputClass}
           />
@@ -553,7 +559,7 @@ export function RipeningForm({
             id="new-location"
             name="newLocationName"
             value={newLocationName}
-            onChange={(event) => setNewLocationName(event.target.value)}
+            onValueChange={setNewLocationName}
             placeholder="例：追熟庫A"
             maxLength={80}
             required
@@ -567,7 +573,10 @@ export function RipeningForm({
         <legend className="sr-only">選果の内訳</legend>
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-kiwi-ink">選果の内訳</h3>
-          <span className="text-xs font-bold tabular-nums text-primary">
+          <span
+            aria-live="polite"
+            className="text-xs font-bold tabular-nums text-primary"
+          >
             合計 {formatWeight(totalWeightKg)} kg
           </span>
         </div>
@@ -576,11 +585,8 @@ export function RipeningForm({
           const selectedSource = sortingSources.find(
             (source) => source.id === allocation.sortingLogId,
           );
-          const enteredWeight = Number(allocation.weightKg);
-          const isOver =
-            selectedSource &&
-            Number.isFinite(enteredWeight) &&
-            enteredWeight > selectedSource.availableWeightKg;
+          const allocationError = allocationErrors[allocation.key];
+          const allocationErrorId = `allocation-${allocation.key}-error`;
 
           return (
             <div key={allocation.key} className="space-y-2 rounded-xl bg-kiwi-cream/75 p-3">
@@ -617,24 +623,35 @@ export function RipeningForm({
                   step="0.01"
                   inputMode="decimal"
                   value={allocation.weightKg}
-                  onChange={(event) => handleWeightChange(index, event.target.value)}
+                  onValueChange={(value) => handleWeightChange(index, value)}
                   placeholder="量"
                   required
+                  max={selectedSource?.availableWeightKg}
+                  aria-invalid={Boolean(allocationError)}
+                  aria-describedby={allocationError ? allocationErrorId : undefined}
                   aria-label={`内訳${index + 1}の量`}
-                  className={`${inputClass} pr-12 ${isOver ? "border-destructive" : ""}`}
+                  className={`${inputClass} pr-12 ${allocationError ? "border-destructive" : ""}`}
                 />
                 <span className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-sm text-muted-foreground">kg</span>
               </div>
-              {isOver && (
-                <p className="text-xs text-destructive">
-                  使用可能な{formatWeight(selectedSource.availableWeightKg)} kgを超えています。
+              {allocationError && (
+                <p
+                  id={allocationErrorId}
+                  role="alert"
+                  className="text-xs font-medium text-destructive"
+                >
+                  {allocationError}
                 </p>
               )}
             </div>
           );
         })}
 
-        {fieldErrors?.items?.[0] && <p className="text-sm text-destructive">{fieldErrors.items[0]}</p>}
+        {fieldErrors?.items?.[0] && (
+          <p role="alert" className="text-sm text-destructive">
+            {fieldErrors.items[0]}
+          </p>
+        )}
 
         {canAddAllocation && (
           <Button
@@ -649,57 +666,28 @@ export function RipeningForm({
         )}
       </fieldset>
 
-      {firstSource && (
-        <div className={`rounded-xl px-4 py-3 text-sm ${selectedDefaults.sourceType === "none" ? "bg-kiwi-amber/25 text-kiwi-brown" : "bg-primary/10 text-kiwi-ink"}`}>
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="font-bold">
-                {startDate.slice(5, 7).replace(/^0/, "")}月・{firstSource.varietyName}の入力初期値
-              </p>
-              <p className="mt-0.5 text-xs leading-5">
-                {defaultNotice(
-                  selectedDefaults.sourceType,
-                  selectedDefaults.hasCompleteMaster,
-                )}
-              </p>
-            </div>
-            {selectedDefaults.sourceType !== "none" && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => applyDefaults(firstSource.id, startDate)}
-                className="h-8 shrink-0 rounded-lg bg-white/75 px-2.5 text-xs font-bold"
-              >
-                <RotateCcw className="size-3.5" />
-                戻す
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
-
-      <details
-        open={isConditionsOpen}
-        onToggle={(event) => setIsConditionsOpen(event.currentTarget.open)}
-        className="group rounded-2xl border border-primary/20 bg-white/80 shadow-sm"
-      >
-        <summary className="cursor-pointer list-none px-4 py-3.5">
+      {/* 条件は最初から全項目を表示し、「戻す」で品種・月の初期値へ復元する。 */}
+      <section className="rounded-2xl border border-primary/20 bg-white/80 shadow-sm">
+        <div className="px-4 py-3.5">
           <span className="flex items-center justify-between gap-3">
             <span>
               <span className="block text-sm font-bold text-kiwi-ink">追熟条件</span>
-              <span className="mt-1 block text-xs leading-5 text-muted-foreground">
-                エチレン {ethyleneTemperatureC || "-"}℃・{ethyleneProcessingHours || "-"}時間
-                ／ 保管 {restingTemperatureC || "-"}℃・{restingDurationHours || "-"}時間
-              </span>
             </span>
-            <span className="shrink-0 rounded-full border bg-white px-2.5 py-1 text-xs font-bold text-kiwi-ink">
-              条件を変更
-            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!firstSource || selectedDefaults.sourceType === "none"}
+              onClick={() => firstSource && applyDefaults(firstSource.id, startDate)}
+              className="h-8 shrink-0 rounded-lg bg-white/75 px-2.5 text-xs font-bold"
+            >
+              <RotateCcw className="size-3.5" />
+              戻す
+            </Button>
           </span>
-        </summary>
+        </div>
 
-        <div className="space-y-4 border-t px-4 py-4">
+        <div className="space-y-3 border-t px-4 py-4">
           <div className="grid grid-cols-2 gap-3">
         <Field label="エチレン温度" htmlFor="ethylene-temperature" optional={!saveAsStandard} error={fieldErrors?.ethyleneTemperatureC?.[0]}>
           <div className="relative">
@@ -709,7 +697,7 @@ export function RipeningForm({
               type="number"
               step="0.1"
               value={ethyleneTemperatureC}
-              onChange={(event) => setEthyleneTemperatureC(event.target.value)}
+              onValueChange={setEthyleneTemperatureC}
               required={saveAsStandard}
               className={`${inputClass} pr-10`}
             />
@@ -725,7 +713,7 @@ export function RipeningForm({
               min="0.01"
               step="0.5"
               value={ethyleneProcessingHours}
-              onChange={(event) => setEthyleneProcessingHours(event.target.value)}
+              onValueChange={setEthyleneProcessingHours}
               required
               className={`${inputClass} pr-12`}
             />
@@ -740,7 +728,7 @@ export function RipeningForm({
               type="number"
               step="0.1"
               value={restingTemperatureC}
-              onChange={(event) => setRestingTemperatureC(event.target.value)}
+              onValueChange={setRestingTemperatureC}
               required={saveAsStandard}
               className={`${inputClass} pr-10`}
             />
@@ -756,7 +744,7 @@ export function RipeningForm({
               min="0"
               step="0.5"
               value={restingDurationHours}
-              onChange={(event) => setRestingDurationHours(event.target.value)}
+              onValueChange={setRestingDurationHours}
               required
               className={`${inputClass} pr-12`}
             />
@@ -765,27 +753,18 @@ export function RipeningForm({
         </Field>
           </div>
 
-          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3">
+          <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-kiwi-ink">
             <input
               type="checkbox"
               name="saveAsStandard"
               checked={saveAsStandard}
               onChange={(event) => setSaveAsStandard(event.target.checked)}
-              className="size-5 rounded border-input accent-primary"
+              className="size-3.5 rounded border-input accent-primary"
             />
-            <span>
-              <span className="block text-sm font-bold text-kiwi-ink">
-                今回の条件を標準値として保存
-              </span>
-              <span className="mt-0.5 block text-xs text-muted-foreground">
-                {firstSource
-                  ? `${startDate.slice(5, 7).replace(/^0/, "")}月・${firstSource.varietyName}の次回入力に使用します`
-                  : "月と品種ごとの次回入力に使用します"}
-              </span>
-            </span>
+            <span>今回の条件を保存</span>
           </label>
         </div>
-      </details>
+      </section>
 
       <details
         open={isMetaOpen}
@@ -834,50 +813,26 @@ export function RipeningForm({
 
       <Button
         type="submit"
-        disabled={!currentStaff || sortingSources.length === 0 || isPending}
+        disabled={!currentStaff || !staffName.trim() || sortingSources.length === 0 || isPending}
         className="mt-3 h-13 w-full rounded-full text-[15px] font-bold shadow-[0_8px_20px_-6px_rgba(66,160,71,0.5)]"
       >
         {isPending ? "登録中…" : "追熟を開始する"}
       </Button>
 
       <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
-        <DialogContent showCloseButton={false} className="max-h-[85dvh] gap-4 overflow-y-auto rounded-2xl p-5">
+        <DialogContent showCloseButton={false} className="gap-5 rounded-2xl p-5">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-kiwi-ink">この内容で追熟を開始しますか？</DialogTitle>
-            <DialogDescription>終了予定と内訳をご確認ください。</DialogDescription>
+            <DialogTitle className="text-lg font-bold text-kiwi-ink">
+              追熟を開始して良いですか？
+            </DialogTitle>
           </DialogHeader>
-
-          <dl className="rounded-xl border border-border bg-muted/30 px-3">
-            <ConfirmationRow label="担当者" value={currentStaff?.name ?? "確認できません"} />
-            <ConfirmationRow label="開始" value={`${formatDate(startDate)} ${startTime}`} />
-            <ConfirmationRow
-              label="追熟場所"
-              value={
-                locationChoice === NEW_LOCATION
-                  ? newLocationName || "未入力"
-                  : locations.find((location) => location.id === locationChoice)?.name ?? "未選択"
-              }
-            />
-            <ConfirmationRow label="品種" value={firstSource?.varietyName ?? "未選択"} />
-            <ConfirmationRow label="合計量" value={`${formatWeight(totalWeightKg)} kg`} />
-            <ConfirmationRow label="内訳" value={allocations.map((allocation) => {
-              const source = sortingSources.find((candidate) => candidate.id === allocation.sortingLogId);
-              return `${source?.title ?? "未選択"} ${allocation.weightKg || "0"} kg`;
-            }).join(" / ")} />
-            <ConfirmationRow label="エチレン" value={`${ethyleneTemperatureC ? `${ethyleneTemperatureC}℃・` : ""}${ethyleneProcessingHours || "未入力"}時間`} />
-            <ConfirmationRow label="エチレン後の保管" value={`${restingTemperatureC ? `${restingTemperatureC}℃・` : ""}${restingDurationHours || "未入力"}時間`} />
-            <ConfirmationRow label="終了予定" value={timeline ? formatDateTime(timeline.ethyleneEnd) : "算出できません"} />
-            <ConfirmationRow label="出荷可能" value={timeline ? formatDateTime(timeline.shippable) : "算出できません"} />
-            <ConfirmationRow label="通知" value={notificationsEnabled ? "通知対象にする" : "通知対象にしない"} />
-            <ConfirmationRow label="メモ" value={notes.trim() || "なし"} />
-          </dl>
 
           <div className="grid grid-cols-2 gap-3">
             <DialogClose render={<Button type="button" variant="outline" className="h-11 rounded-xl font-bold" />}>
               戻る
             </DialogClose>
             <Button type="button" onClick={confirmSubmission} className="h-11 rounded-xl font-bold">
-              開始する
+              開始
             </Button>
           </div>
         </DialogContent>

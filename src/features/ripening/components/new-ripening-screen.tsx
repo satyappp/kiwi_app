@@ -1,10 +1,8 @@
 import { BackButton } from "@/components/layout/back-button";
 import { RipeningForm } from "@/features/ripening/components/ripening-form";
-import { RipeningStatusPanel } from "@/features/ripening/components/ripening-status-panel";
 import {
   getCurrentRipeningStaff,
   getRipeningFormOptions,
-  listActiveRipeningStatuses,
 } from "@/features/ripening/queries";
 
 const JST = "Asia/Tokyo";
@@ -27,10 +25,10 @@ function nowInJst() {
 }
 
 export async function NewRipeningScreen() {
-  const [options, currentStaff, statuses] = await Promise.all([
+  // この画面は新規入力に集中させ、進行状況や次回確認は管理タイムラインへ集約する。
+  const [options, currentStaff] = await Promise.all([
     getRipeningFormOptions(),
     getCurrentRipeningStaff(),
-    listActiveRipeningStatuses(),
   ]);
   const { date, time } = nowInJst();
 
@@ -44,8 +42,6 @@ export async function NewRipeningScreen() {
           追熟・エチレン管理
         </h1>
       </header>
-
-      <RipeningStatusPanel statuses={statuses} />
 
       <section aria-labelledby="start-ripening-title">
         <div className="mb-4">

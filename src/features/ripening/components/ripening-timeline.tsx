@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 
+import type { RipeningPhase } from "@/features/ripening/schema";
 import { cn } from "@/lib/utils";
 
 export type RipeningTimelineItem = {
@@ -11,6 +13,7 @@ export type RipeningTimelineItem = {
   startedAt: string;
   ethyleneEndedAt: string;
   shippableAt: string;
+  phase?: RipeningPhase;
   href?: string;
 };
 
@@ -40,16 +43,17 @@ function formatDateTime(value: string) {
   }).format(new Date(value));
 }
 
-function formatTick(value: number, showTime: boolean) {
+function formatTick(value: number) {
   return new Intl.DateTimeFormat("ja-JP", {
     timeZone: "Asia/Tokyo",
     month: "numeric",
     day: "numeric",
-    ...(showTime ? { hour: "2-digit" as const } : {}),
   }).format(new Date(value));
 }
 
 function statusFor(item: RipeningTimelineItem, now: number) {
+  if (item.phase === "completed") return "完了";
+  if (item.phase === "cancelled") return "取消";
   if (now < parseTime(item.startedAt)) return "開始前";
   if (now < parseTime(item.ethyleneEndedAt)) return "エチレン処理中";
   if (now < parseTime(item.shippableAt)) return "保管中";
@@ -59,15 +63,41 @@ function statusFor(item: RipeningTimelineItem, now: number) {
 export function RipeningTimeline({
   items,
   currentTime,
+  viewAllHref,
 }: {
   items: RipeningTimelineItem[];
   currentTime: string;
+  viewAllHref?: string;
 }) {
+  // バー自体に工程名があるため、凡例は記号だけでは分かりにくい「出荷可能」に絞る。
+  const header = (
+    <div className="flex flex-col gap-3 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <h2 className="font-bold text-kiwi-ink">追熟タイムライン</h2>
+      <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="size-2.5 rounded-full border-2 border-kiwi bg-white" />出荷可能
+        </span>
+        {viewAllHref && (
+          <Link
+            href={viewAllHref}
+            className="inline-flex items-center gap-1 rounded-lg border bg-white px-2.5 py-1.5 font-bold text-kiwi-ink transition hover:bg-muted"
+          >
+            すべて見る
+            <ArrowRight className="size-3.5" />
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+
   if (items.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed bg-white/70 px-6 py-14 text-center text-sm text-muted-foreground">
-        表示できる追熟ロットがありません。
-      </div>
+      <section className="overflow-hidden rounded-2xl border border-white/80 bg-white/90 shadow-[0_14px_34px_-22px_rgba(55,75,35,.28)]">
+        {header}
+        <div className="px-6 py-14 text-center text-sm text-muted-foreground">
+          表示できる追熟ロットがありません。
+        </div>
+      </section>
     );
   }
 
@@ -83,7 +113,7 @@ export function RipeningTimeline({
   const rangeStart = firstEvent - padding;
   const rangeEnd = lastEvent + padding;
   const rangeDuration = Math.max(rangeEnd - rangeStart, DAY_MS);
-  const showTickTime = rangeDuration <= 4 * DAY_MS;
+  // 時間ではなく日単位の見通しを優先し、軸ラベルは日付だけを等間隔で表示する。
   const ticks = Array.from({ length: 7 }, (_, index) => ({
     value: rangeStart + (rangeDuration * index) / 6,
     position: (index / 6) * 100,
@@ -96,25 +126,7 @@ export function RipeningTimeline({
 
   return (
     <section className="overflow-hidden rounded-2xl border border-white/80 bg-white/90 shadow-[0_14px_34px_-22px_rgba(55,75,35,.28)]">
-      <div className="flex flex-col gap-3 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="font-bold text-kiwi-ink">追熟タイムライン</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            ロットごとの処理時間と出荷可能時刻を同じ時間軸で比較します
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-2.5 w-6 rounded-full bg-kiwi" />エチレン処理
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-2.5 w-6 rounded-full bg-kiwi-pale" />エチレン後の保管
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="size-2.5 rounded-full border-2 border-kiwi bg-white" />出荷可能
-          </span>
-        </div>
-      </div>
+      {header}
 
       <div className="overflow-x-auto px-4 pb-5 pt-4 sm:px-5">
         <div className="min-w-[860px]">
@@ -124,10 +136,10 @@ export function RipeningTimeline({
               {ticks.map((tick) => (
                 <time
                   key={tick.value}
-                  className="absolute top-0 -translate-x-1/2 whitespace-nowrap first:translate-x-0 last:-translate-x-full"
+                  className="absolute top-0 -translate-x-1/2 whitespace-nowrap font-bold text-kiwi-ink first:translate-x-0 last:-translate-x-full"
                   style={{ left: `${tick.position}%` }}
                 >
-                  {formatTick(tick.value, showTickTime)}
+                  {formatTick(tick.value)}
                 </time>
               ))}
               <span
@@ -203,12 +215,6 @@ export function RipeningTimeline({
                       className={cn("absolute top-[1.35rem] z-30 size-9 -translate-x-1/2 rounded-full border-[3px] bg-white shadow-sm", palette.ring)}
                       style={{ left: `${shippable}%` }}
                     />
-                    <time
-                      className="absolute top-[3.6rem] -translate-x-1/2 whitespace-nowrap text-[10px] font-bold text-muted-foreground"
-                      style={{ left: `${shippable}%` }}
-                    >
-                      {formatDateTime(item.shippableAt)}
-                    </time>
                   </div>
                 </div>
               );

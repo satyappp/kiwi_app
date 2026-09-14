@@ -28,6 +28,12 @@ export const ripeningItemInputSchema = z.object({
 /** Values selected or entered when a worker starts one ripening batch. */
 export const ripeningInputSchema = z
   .object({
+    // ログインユーザー名を初期値にしつつ、現場で担当者が変わった場合は編集を許可する。
+    staffName: z
+      .string()
+      .trim()
+      .min(1, "担当者名を入力してください")
+      .max(80, "担当者名は80文字以内で入力してください"),
     startDate: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, "開始日を入力してください"),

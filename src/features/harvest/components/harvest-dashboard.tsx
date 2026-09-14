@@ -122,8 +122,10 @@ export function HarvestDashboard({
         </div>
       </section>
 
+      {/* 対応中の追熟を先に判断できるよう、作業一覧より上にタイムラインを置く。 */}
       <RipeningTimeline
         currentTime={new Date().toISOString()}
+        viewAllHref="/dashboard/ripening"
         items={ripeningStatuses.map((status) => ({
           id: status.id,
           ripeningNo: status.ripeningNo,
@@ -133,6 +135,7 @@ export function HarvestDashboard({
           startedAt: status.startedAt,
           ethyleneEndedAt: status.ethyleneEndedAt,
           shippableAt: status.shippableAt,
+          phase: status.phase,
           href: `/dashboard/ripening/${status.id}`,
         }))}
       />

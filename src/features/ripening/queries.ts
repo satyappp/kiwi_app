@@ -177,7 +177,7 @@ export async function getRipeningFormOptions(): Promise<RipeningFormOptions> {
   };
 }
 
-/** The signed-in worker displayed in the read-only staff field. */
+/** ログイン中の担当者。入力欄の初期値に使い、画面上では必要に応じて変更できる。 */
 export async function getCurrentRipeningStaff(): Promise<StaffOption | null> {
   const supabase = await createClient();
   const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
@@ -195,18 +195,29 @@ export async function getCurrentRipeningStaff(): Promise<StaffOption | null> {
   return { id: data.id, name: data.display_name };
 }
 
-/** Active batches ordered by the next action the worker must check. */
-export async function listActiveRipeningStatuses(): Promise<RipeningStatus[]> {
+async function listRipeningStatuses({
+  phase,
+  limit = 12,
+}: {
+  phase?: RipeningPhase;
+  limit?: number;
+} = {}): Promise<RipeningStatus[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  // 完了・取消はタイムラインから除外するが、別の履歴取得では残して再印刷できるようにする。
+  let query = supabase
     .from("ripening_batches_expanded")
     .select(
       "work_record_id, ripening_no, ripening_title, ripening_location, variety_name, weight_kg, sorting_titles, started_at, ethylene_ended_at, shippable_at, phase, next_check_at, next_check_type, is_ethylene_processing, is_overdue, is_due_soon",
     )
     .is("cancelled_at", null)
-    .is("completed_at", null)
+    .is("completed_at", null);
+
+  // ダッシュボードだけはエチレン処理中へ絞り、専用ページでは全進行工程を取得する。
+  if (phase) query = query.eq("phase", phase);
+
+  const { data, error } = await query
     .order("next_check_at")
-    .limit(12);
+    .limit(limit);
 
   if (error) {
     throw new Error(`追熟状況の取得に失敗しました (${error.code})`);
@@ -239,10 +250,7 @@ export async function listActiveRipeningStatuses(): Promise<RipeningStatus[]> {
       "ripening_batches_expanded.shippable_at",
     ),
     phase: toPhase(requireDbValue(row.phase, "ripening_batches_expanded.phase")),
-    nextCheckAt: requireDbValue(
-      row.next_check_at,
-      "ripening_batches_expanded.next_check_at",
-    ),
+    nextCheckAt: row.next_check_at,
     nextCheckType:
       row.next_check_type === "ethylene_end" ||
       row.next_check_type === "shippable"
@@ -253,8 +261,19 @@ export async function listActiveRipeningStatuses(): Promise<RipeningStatus[]> {
       "ripening_batches_expanded.is_ethylene_processing",
     ),
     isOverdue: requireDbValue(row.is_overdue, "ripening_batches_expanded.is_overdue"),
-    isDueSoon: requireDbValue(row.is_due_soon, "ripening_batches_expanded.is_due_soon"),
+    isDueSoon: Boolean(row.is_due_soon),
   }));
+}
+
+/** Active batches ordered by the next action the worker must check. */
+export async function listActiveRipeningStatuses({
+  phase,
+  limit = 12,
+}: {
+  phase?: RipeningPhase;
+  limit?: number;
+} = {}): Promise<RipeningStatus[]> {
+  return listRipeningStatuses({ phase, limit });
 }
 
 /** Historical ripening records for the management list. */
