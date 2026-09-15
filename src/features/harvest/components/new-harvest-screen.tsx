@@ -1,9 +1,7 @@
 import { BackButton } from "@/components/layout/back-button";
+import { getCurrentStaff } from "@/features/auth/server";
 import { HarvestForm } from "@/features/harvest/components/harvest-form";
-import {
-  getCurrentStaff,
-  getHarvestFormOptions,
-} from "@/features/harvest/queries";
+import { getHarvestFormOptions } from "@/features/harvest/queries";
 
 const JST = "Asia/Tokyo";
 
@@ -22,6 +20,12 @@ function nowInJst() {
   return { date, time };
 }
 
+function addDays(date: string, days: number) {
+  const value = new Date(`${date}T00:00:00Z`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
+}
+
 export async function NewHarvestScreen() {
   const [options, currentStaff] = await Promise.all([
     getHarvestFormOptions(),
@@ -33,7 +37,7 @@ export async function NewHarvestScreen() {
     <main className="flex-1 px-[7%] pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-[calc(env(safe-area-inset-bottom)+2rem)]">
       <header className="relative mb-8 flex h-11 items-center justify-center">
         <div className="absolute -left-2">
-          <BackButton fallbackHref="/" />
+          <BackButton href="/home" />
         </div>
         <h1 className="text-[clamp(1.1rem,5cqw,1.35rem)] font-bold text-kiwi-ink">
           収穫登録
@@ -45,6 +49,7 @@ export async function NewHarvestScreen() {
         options={options}
         defaultDate={date}
         defaultTime={time}
+        defaultSortingDeadline={addDays(date, 30)}
       />
     </main>
   );

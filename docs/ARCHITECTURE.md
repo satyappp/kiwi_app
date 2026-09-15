@@ -11,7 +11,7 @@ A kiwi-farm operations system with **two surfaces over one backend**:
 
 | Surface | Route | Primary device | Shell |
 |---|---|---|---|
-| **Operational** (quick entry) | `/`, `/harvest/new`, … | phone (installed PWA) | mobile: centred column, watercolor backdrop, per-screen header |
+| **Operational** (quick entry) | `/home`, `/harvest/new`, … | phone (installed PWA) | mobile: centred column, watercolor backdrop, per-screen header |
 | **Management** (dashboard) | `/dashboard`, `/dashboard/*` | office PC | desktop: sidebar, wide grids |
 
 Same auth, same Supabase, same domain code. The split is about **layout and
@@ -19,13 +19,13 @@ entry point**, never about forking business logic.
 
 ### Entry behaviour
 
-- The PWA manifest `start_url` is `/`, so the installed phone app opens the
+- The PWA manifest `start_url` is `/home`, so the installed phone app opens the
   quick-entry home. No device detection needed — only the installed app uses
   `start_url`.
-- Web visitors also land on `/`. Later, once auth/roles exist, add a
-  **role-based** redirect (`管理者` → `/dashboard`) in one place
-  (`src/proxy.ts` or the `(ops)` layout). **Never sniff user-agent or viewport
-  to decide the surface** — device ≠ role ≠ intent.
+- Web visitors land on `/`, which redirects to `/dashboard`. Login preserves a
+  validated local `next` path, so an unauthenticated PWA launch returns to
+  `/home` while a normal web login returns to `/dashboard`. Never sniff the
+  user-agent or viewport to choose a surface.
 - Both surfaces stay usable on any screen size; each is just optimised for its
   primary context.
 
@@ -37,14 +37,18 @@ entry point**, never about forking business logic.
 src/
   app/                      ── routing only (thin)
     layout.tsx              root: <html>, fonts, metadata
+    page.tsx                "/" → redirect to "/dashboard"
     (ops)/                  operational surface — route group, no URL segment
       layout.tsx            mobile shell + <KiwiBackdrop/>
-      page.tsx              "/"            → <QuickEntryHome/>
+      home/page.tsx         "/home"         → <QuickEntryHome/>
       harvest/new/page.tsx  "/harvest/new" → <NewHarvestScreen/>
     (admin)/                management surface — route group, no URL segment
       dashboard/
-        layout.tsx          sidebar shell
-        page.tsx            "/dashboard"
+        layout.tsx          responsive sidebar / drawer shell
+         page.tsx            "/dashboard"         → live harvest overview
+         harvest/page.tsx    "/dashboard/harvest" → harvest table
+         inventory/page.tsx  "/dashboard/inventory" → inventory browser
+         shipping/page.tsx   "/dashboard/shipping" → shipping and sales table
   components/
     ui/                     shadcn primitives — design-system, feature-agnostic
     layout/                 shared chrome: <KiwiBackdrop/>, <BackButton/>, nav
@@ -54,14 +58,16 @@ src/
     queries.ts             data access: reads (Supabase → domain objects)
     actions.ts             application: "use server" mutations / use cases
     index.ts               public surface — the ONLY thing other code imports
+    server.ts              optional server-only public surface
   lib/
     supabase/              infra: server / client / proxy factories
     utils.ts               cn() and other tiny helpers
   proxy.ts                 session refresh (Next 16 "proxy", was "middleware")
 ```
 
-Current features: `home`, `harvest`. Planned (see task list): `sorting`,
-`cold-storage`, `ripening`, `inventory`, `shipments`, `orders`, `customers`,
+Current features: `auth`, `home`, `harvest`, `sorting`, `ripening`, `inventory`, `shipping`. The dashboard
+shell is live, with harvest as its first real data section. Planned (see task list):
+`cold-storage`, `orders`, `customers`,
 `tasks`, `dashboard`.
 
 ---
@@ -82,7 +88,8 @@ Dependencies point **downward only**. A lower layer never imports an upper one.
 ### Cross-feature rule
 
 A feature imports from: `lib/`, `components/ui`, `components/layout`, and its own
-folder. To use another feature, import **only its `index.ts`**. If two features
+folder. To use another feature, import its `index.ts`, or its `server.ts` from a
+Server Component when the dependency is explicitly server-only. If two features
 need the same logic, lift it to `lib/` or a shared feature — don't reach into
 internals.
 
@@ -165,16 +172,24 @@ The product brief weighs *fewer, safer keystrokes* above feature count. So:
 
 ## 8. Supabase
 
-- `lib/supabase/server.ts` → RSC & actions. `client.ts` → browser & realtime.
+- `src/lib/supabase/server.ts` → RSC & actions. `client.ts` → browser & realtime.
   `proxy.ts` → session refresh (wired in `src/proxy.ts`).
 - RLS on every table; policies live in migrations.
-- Generated types → `lib/supabase/database.types.ts`
-  (`supabase gen types typescript`). Data access uses these; the domain layer
-  uses hand-written types and the mapping layer bridges them.
+- Generated live-schema types are stored in `src/lib/supabase/database.types.ts`
+  and every Supabase client is typed with the trigger-aware `AppDatabase`.
+  Regenerate that file from the linked project with
+  `supabase gen types typescript`; do not hand-maintain it. The domain layer
+  keeps purpose-built UI types, with query mapping as the boundary between
+  database rows and UI data.
 - Env: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+- Auth is closed registration: `/signup` validates a server-only farm code,
+  then creates the user through the server-only Admin API. Public Supabase
+  sign-up remains disabled. Required server-only env vars:
+  `SUPABASE_SECRET_KEY`, `KIWI_SIGNUP_CODE` (minimum 16 characters).
 
-Backend is deferred — features currently return placeholder data from
-`queries.ts` so the UI works. Each such spot is marked `TODO(supabase)`.
+The harvest feature is connected to the production Supabase schema. Planned
+features may temporarily use placeholder data while their UI is being built;
+those placeholders must remain explicit and be replaced before release.
 
 ---
 

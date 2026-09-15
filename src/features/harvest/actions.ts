@@ -1,18 +1,20 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import { harvestInputSchema } from "@/features/harvest/schema";
+import { createClient } from "@/lib/supabase/server";
 
 export type CreateHarvestResult =
-  | { ok: true }
+  | { ok: true; id: string; title: string }
   | { ok: false; fieldErrors: Record<string, string[]> }
   | { ok: false; formError: string };
 
 /**
  * Application use case: record a harvest entry.
  *
- * TODO(supabase): insert into `harvest_logs` and revalidate the home /
- * dashboard paths once the schema exists. For now this only validates so the
- * form wiring and error surface can be built against a stable contract.
+ * Identity and derived fields are intentionally omitted: the database sets
+ * staff_id, timestamps, title, year/month, and blank-time defaults.
  */
 export async function createHarvest(
   _prev: CreateHarvestResult | null,
@@ -30,9 +32,41 @@ export async function createHarvest(
     };
   }
 
-  // const supabase = await createClient();
-  // await supabase.from("harvest_logs").insert(mapToRow(parsed.data));
-  // revalidatePath("/");
+  const input = parsed.data;
+  const row = {
+    work_date: input.workDate,
+    plot_id: input.plotId,
+    tree_block_id: input.treeBlockId ?? null,
+    variety_id: input.varietyId,
+    branch: input.branch ?? null,
+    sorting_deadline: input.sortingDeadline,
+    weight_kg: input.weightKg,
+    notes: input.notes ?? null,
+    ...(input.workTime ? { work_time: input.workTime } : {}),
+  };
 
-  return { ok: true };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("harvest_logs")
+    .insert(row)
+    .select("id, title")
+    .single();
+
+  if (error || !data) {
+    console.error("createHarvest failed", {
+      code: error?.code,
+      message: error?.message,
+    });
+    return {
+      ok: false,
+      formError: "収穫を登録できませんでした。入力内容を確認してもう一度お試しください。",
+    };
+  }
+
+  revalidatePath("/");
+  revalidatePath("/harvest");
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/harvest");
+
+  return { ok: true, id: data.id, title: data.title };
 }
