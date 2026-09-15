@@ -287,7 +287,7 @@ export async function getHarvestDashboardData(
   const range = periodRange(period);
 
   const attentionDeadline = addDays(tokyoDateString(), 7);
-  const [periodResult, recentResult, attentionResult] = await Promise.all([
+  const [periodResult, attentionResult] = await Promise.all([
     supabase
       .from("harvest_logs_expanded")
       .select(harvestListColumns)
@@ -297,26 +297,19 @@ export async function getHarvestDashboardData(
     supabase
       .from("harvest_logs_expanded")
       .select(harvestListColumns)
-      .order("work_date", { ascending: false })
-      .order("input_ts", { ascending: false })
-      .limit(6),
-    supabase
-      .from("harvest_logs_expanded")
-      .select(harvestListColumns)
       .lte("sorting_deadline", attentionDeadline)
       .order("sorting_deadline")
       .limit(100),
   ]);
 
-  const error = periodResult.error ?? recentResult.error ?? attentionResult.error;
+  const error = periodResult.error ?? attentionResult.error;
   if (error) throw new Error(`ダッシュボードの取得に失敗しました (${error.code})`);
 
   const periodRows = periodResult.data ?? [];
-  const recentRows = recentResult.data ?? [];
   const attentionRows = attentionResult.data ?? [];
   const ids = [
     ...new Set(
-      [...periodRows, ...recentRows, ...attentionRows].map(
+      [...periodRows, ...attentionRows].map(
         (row) =>
           requireDbValue(
             row.work_record_id,
@@ -339,7 +332,6 @@ export async function getHarvestDashboardData(
   }
 
   const periodLogs = mapHarvestRows(periodRows, statuses);
-  const recentHarvests = mapHarvestRows(recentRows, statuses);
   const attentionLogs = mapHarvestRows(attentionRows, statuses).filter(
     (log) => log.status === "overdue" || log.status === "due-soon",
   );
@@ -364,7 +356,6 @@ export async function getHarvestDashboardData(
       label: `${Number(date.slice(5, 7))}/${Number(date.slice(8, 10))}`,
       weightKg,
     })),
-    recentHarvests,
     nextActions: attentionLogs,
   };
 }

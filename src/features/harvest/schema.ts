@@ -123,6 +123,5 @@ export type HarvestDashboardData = {
   unsortedWeightKg: number;
   attentionCount: number;
   dailyWeights: HarvestChartPoint[];
-  recentHarvests: HarvestLogRow[];
   nextActions: HarvestLogRow[];
 };

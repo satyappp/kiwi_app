@@ -4,8 +4,6 @@ import {
   FileText,
   Home,
   LayoutDashboard,
-  Package,
-  Settings,
   Snowflake,
   Sprout,
   Timer,
@@ -40,14 +38,6 @@ export const dashboardNavigation: NavigationSection[] = [
     label: "帳票",
     items: [
       { label: "納品書作成", href: "/dashboard/delivery-notes", icon: FileText },
-      { label: "CSV出力", icon: Package, isPending: true },
-    ],
-  },
-  {
-    label: "管理",
-    items: [
-      { label: "スマホホーム", href: "/home", icon: Home },
-      { label: "設定", icon: Settings, isPending: true },
     ],
   },
 ];
@@ -69,7 +59,6 @@ export const mobileNavigation: NavigationSection[] = [
     label: "確認",
     items: [
       { label: "収穫履歴", href: "/harvest", icon: ClipboardList },
-      { label: "ダッシュボード", href: "/dashboard", icon: LayoutDashboard },
     ],
   },
 ];

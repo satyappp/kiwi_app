@@ -2,7 +2,6 @@ import Link from "next/link";
 import { AlertCircle, ArrowRight, CalendarDays, PackageCheck, Scale, Sprout, Timer, Truck } from "lucide-react";
 
 import { NextActionList } from "@/components/operations/next-action-list";
-import { HarvestTable } from "@/features/harvest/components/harvest-table";
 import { HarvestWeightChart } from "@/features/harvest/components/harvest-charts";
 import { DashboardQuickActions } from "@/features/harvest/components/dashboard-quick-actions";
 import type { HarvestDashboardData, HarvestPeriod } from "@/features/harvest/schema";
@@ -179,13 +178,6 @@ export function HarvestDashboard({
         <NextActionList actions={nextActions} dense />
       </section>
 
-      <section className="overflow-hidden rounded-2xl border border-white/80 bg-white/88 shadow-[0_14px_34px_-22px_rgba(55,75,35,.28)]">
-        <div className="flex items-center justify-between px-5 py-5 sm:px-6">
-          <h2 className="text-lg font-bold text-kiwi-ink">最近の収穫記録</h2>
-          <Link href="/dashboard/harvest" className="inline-flex items-center gap-1 text-sm font-bold text-kiwi">詳細を見る <ArrowRight className="size-4" /></Link>
-        </div>
-        <HarvestTable rows={data.recentHarvests} />
-      </section>
     </div>
   );
 }

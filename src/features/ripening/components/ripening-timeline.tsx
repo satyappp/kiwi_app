@@ -92,7 +92,7 @@ export function RipeningTimeline({
 
   if (items.length === 0) {
     return (
-      <section className="overflow-hidden rounded-2xl border border-white/80 bg-white/90 shadow-[0_14px_34px_-22px_rgba(55,75,35,.28)]">
+      <section className="isolate overflow-hidden rounded-2xl border border-white/80 bg-white/90 shadow-[0_14px_34px_-22px_rgba(55,75,35,.28)]">
         {header}
         <div className="px-6 py-14 text-center text-sm text-muted-foreground">
           表示できる追熟ロットがありません。
@@ -125,7 +125,7 @@ export function RipeningTimeline({
   const nowPosition = positionFor(now);
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-white/80 bg-white/90 shadow-[0_14px_34px_-22px_rgba(55,75,35,.28)]">
+    <section className="isolate overflow-hidden rounded-2xl border border-white/80 bg-white/90 shadow-[0_14px_34px_-22px_rgba(55,75,35,.28)]">
       {header}
 
       <div className="overflow-x-auto px-4 pb-5 pt-4 sm:px-5">
@@ -212,7 +212,7 @@ export function RipeningTimeline({
                     </span>
                     <span
                       title={`出荷可能 ${formatDateTime(item.shippableAt)}`}
-                      className={cn("absolute top-[1.35rem] z-30 size-9 -translate-x-1/2 rounded-full border-[3px] bg-white shadow-sm", palette.ring)}
+                      className={cn("absolute top-[1.35rem] z-20 size-9 -translate-x-1/2 rounded-full border-[3px] bg-white shadow-sm", palette.ring)}
                       style={{ left: `${shippable}%` }}
                     />
                   </div>
